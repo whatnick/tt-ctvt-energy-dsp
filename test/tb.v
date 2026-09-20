@@ -22,13 +22,15 @@ module tb ();
   wire [7:0] uo_out;
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
+  wire adc_cs_n = uo_out[0];
+  wire adc_sclk = uo_out[1];
+  wire host_miso = uo_out[3];
 `ifdef GL_TEST
   wire VPWR = 1'b1;
   wire VGND = 1'b0;
 `endif
 
-  // Replace tt_um_example with your module name:
-  tt_um_example user_project (
+  tt_um_whatnick_ctvt_energy_dsp user_project (
 
       // Include power ports for the Gate Level test:
 `ifdef GL_TEST
