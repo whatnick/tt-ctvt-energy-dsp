@@ -46,15 +46,6 @@ async def host_read(dut, address: int) -> int:
         dut.ui_in.value = int(dut.ui_in.value) | 0x08
         await Timer(100, unit="ns")
 
-    dut._log.info(
-        "Host register 0x%02x ui=0x%02x address=0x%02x count=%d loaded 0x%016x",
-        address,
-        int(dut.ui_in.value),
-        int(dut.user_project.host_readout.address_shift.value),
-        int(dut.user_project.host_readout.bit_count.value),
-        int(dut.user_project.host_readout.transmit_shift.value),
-    )
-
     result = 0
     for _ in range(64):
         dut.ui_in.value = int(dut.ui_in.value) & ~0x08
