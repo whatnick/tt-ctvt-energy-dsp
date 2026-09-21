@@ -9,11 +9,13 @@ PMOD's ADS131M02 over SPI, captures simultaneous 24-bit voltage/current
 samples, and turns the sample stream into coherent measurement snapshots for
 a host controller.
 
-The first working RTL slice implements:
+The working RTL currently implements:
 
 - ADS131M02-style 72-bit frame capture: status, voltage, and current;
 - 256-sample accumulation of `sum(v)`, `sum(i)`, `sum(v*i)`, `sum(v^2)`, and
   `sum(i^2)`;
+- serial integer square-root processing for voltage/current RMS, window-average
+  active power, and cumulative signed active-energy quanta;
 - atomic result registers with a monotonically increasing sequence number;
 - a read-only host SPI interface and level interrupt with explicit acknowledge;
 - a cocotb test that drives 256 ADC frames and verifies every exported result.
@@ -28,9 +30,9 @@ IRQn     <----| interrupt control  +-> Goertzel harmonic engine   |
               +---------------------------------------------------+
 ```
 
-Only capture, raw moment accumulation, snapshot readout, and interrupt
-handshake are implemented today. Calibration, RMS square root, energy
-integration, phase/frequency tracking, event detection, and harmonics are
+Capture, raw moment accumulation, RMS, active power/energy, snapshot readout,
+and interrupt handshake are implemented today. Calibration, phase/frequency
+tracking, event detection, reactive/apparent measurements, and harmonics are
 staged in the [architecture](docs/architecture.md), not claimed as complete.
 
 ## Why this architecture
@@ -61,17 +63,19 @@ Sraw  = Vrms * Irms
 PF    = Praw / Sraw
 ```
 
-Physical volts, amperes, watts, and watt-hours are obtained by applying the
-CT/VT calibration coefficients and sample period. Read `SNAPSHOT_SEQ` before
-and after a multi-register transfer and retry if it changed. See the complete
+The ASIC now calculates raw-count `VOLTAGE_RMS`, `CURRENT_RMS`,
+`ACTIVE_POWER`, and signed cumulative `ACTIVE_ENERGY`. Physical volts,
+amperes, watts, and watt-hours are obtained by applying CT/VT calibration
+coefficients and the sample period. Read `MEASUREMENT_SEQ` before and after a
+multi-register transfer and retry if it changed. See the complete
 [register map](docs/register-map.md).
 
 ## FPGA validation
 
 - **iCEBreaker / iCE40UP5K:** preferred low-cost PMOD bench for the current
-  SPI capture and serialized MAC core. A Yosys `synth_ice40` check uses 2,923
-  LUT4s and 1,065 flip-flops, leaving useful room for calibration and compact
-  metrology additions.
+  SPI capture and serialized MAC core. With integer RMS and energy enabled, a
+  Yosys `synth_ice40` check uses 3,688 LUT4s and 1,525 flip-flops, leaving room
+  for compact calibration and event logic but not a broad parallel FFT.
 - **OrangeCrab ECP5-25F:** recommended full-pipeline target with comfortable
   room for event buffering and a 15-bin Goertzel engine.
 - **ECP5-85F board:** fallback for parallel comparison engines, long waveform

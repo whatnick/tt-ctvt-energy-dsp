@@ -16,6 +16,11 @@ module host_spi_readout (
     input  wire [63:0]        sum_current_sq,
     input  wire signed [63:0] sum_voltage,
     input  wire signed [63:0] sum_current,
+    input  wire [31:0]        measurement_sequence,
+    input  wire [31:0]        voltage_rms,
+    input  wire [31:0]        current_rms,
+    input  wire signed [63:0] active_power,
+    input  wire signed [63:0] active_energy,
     input  wire [23:0]        adc_status
 );
 
@@ -37,6 +42,11 @@ module host_spi_readout (
         8'h12: read_register = sum_current_sq;
         8'h13: read_register = sum_voltage;
         8'h14: read_register = sum_current;
+        8'h20: read_register = {32'b0, measurement_sequence};
+        8'h21: read_register = {32'b0, voltage_rms};
+        8'h22: read_register = {32'b0, current_rms};
+        8'h23: read_register = active_power;
+        8'h24: read_register = active_energy;
         default: read_register = 64'b0;
       endcase
     end

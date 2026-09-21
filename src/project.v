@@ -65,6 +65,30 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .sum_current(sum_current)
   );
 
+  wire measurement_valid;
+  wire [31:0] measurement_sequence;
+  wire [31:0] voltage_rms;
+  wire [31:0] current_rms;
+  wire signed [63:0] active_power;
+  wire signed [63:0] active_energy;
+
+  metering_postprocess #(
+      .WINDOW_LOG2(8)
+  ) postprocess (
+      .clk(clk),
+      .rst_n(rst_n),
+      .snapshot_valid(snapshot_valid),
+      .sum_active_power(sum_active_power),
+      .sum_voltage_sq(sum_voltage_sq),
+      .sum_current_sq(sum_current_sq),
+      .measurement_valid(measurement_valid),
+      .measurement_sequence(measurement_sequence),
+      .voltage_rms(voltage_rms),
+      .current_rms(current_rms),
+      .active_power(active_power),
+      .active_energy(active_energy)
+  );
+
   wire host_miso;
   host_spi_readout host_readout (
       .host_cs_n(ui_in[2]),
@@ -77,6 +101,11 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .sum_current_sq(sum_current_sq),
       .sum_voltage(sum_voltage),
       .sum_current(sum_current),
+      .measurement_sequence(measurement_sequence),
+      .voltage_rms(voltage_rms),
+      .current_rms(current_rms),
+      .active_power(active_power),
+      .active_energy(active_energy),
       .adc_status(adc_status)
   );
 
@@ -84,7 +113,7 @@ module tt_um_whatnick_ctvt_energy_dsp (
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n)
       measurement_pending <= 1'b0;
-    else if (snapshot_valid)
+    else if (measurement_valid)
       measurement_pending <= 1'b1;
     else if (ui_in[5])
       measurement_pending <= 1'b0;

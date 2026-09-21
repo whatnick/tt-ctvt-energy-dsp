@@ -20,6 +20,8 @@ project:
     - "project.v"
     - "adc_spi_capture.v"
     - "energy_accumulator.v"
+    - "integer_sqrt.v"
+    - "metering_postprocess.v"
     - "host_spi_readout.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.

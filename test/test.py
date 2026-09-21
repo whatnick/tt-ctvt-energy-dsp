@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import cocotb
+import math
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge, RisingEdge, Timer
 
@@ -77,7 +78,7 @@ async def test_capture_accumulate_and_readout(dut):
     for _ in range(256):
         await send_adc_frame(dut, status, voltage, current)
 
-    await ClockCycles(dut.clk, 4)
+    await ClockCycles(dut.clk, 80)
     assert ((int(dut.uo_out.value) >> 4) & 1) == 0
     assert await host_read(dut, 0x00) == 0x4354565444535031
     assert await host_read(dut, 0x01) == 1
@@ -87,9 +88,46 @@ async def test_capture_accumulate_and_readout(dut):
     assert await host_read(dut, 0x12) == current * current * 256
     assert await host_read(dut, 0x13) == voltage * 256
     assert await host_read(dut, 0x14) == ((current * 256) & ((1 << 64) - 1))
+    assert await host_read(dut, 0x20) == 1
+    assert await host_read(dut, 0x21) == abs(voltage)
+    assert await host_read(dut, 0x22) == abs(current)
+    assert await host_read(dut, 0x23) == ((voltage * current) & ((1 << 64) - 1))
+    assert await host_read(dut, 0x24) == ((voltage * current * 256) & ((1 << 64) - 1))
 
     dut.ui_in.value = int(dut.ui_in.value) | 0x20
     await ClockCycles(dut.clk, 1)
     dut.ui_in.value = int(dut.ui_in.value) & ~0x20
     await ClockCycles(dut.clk, 1)
     assert ((int(dut.uo_out.value) >> 4) & 1) == 1
+
+    voltage_2 = -300
+    current_2 = 400
+    for _ in range(256):
+        await send_adc_frame(dut, status, voltage_2, current_2)
+
+    await ClockCycles(dut.clk, 80)
+    assert await host_read(dut, 0x20) == 2
+    assert await host_read(dut, 0x21) == abs(voltage_2)
+    assert await host_read(dut, 0x22) == abs(current_2)
+    assert await host_read(dut, 0x23) == ((voltage_2 * current_2) & ((1 << 64) - 1))
+    expected_energy = (voltage * current + voltage_2 * current_2) * 256
+    assert await host_read(dut, 0x24) == (expected_energy & ((1 << 64) - 1))
+
+    active_sum_3 = 0
+    voltage_sq_sum_3 = 0
+    current_sq_sum_3 = 0
+    for index in range(256):
+        voltage_3 = 3 if index & 1 else 4
+        current_3 = 5 if index & 1 else 12
+        active_sum_3 += voltage_3 * current_3
+        voltage_sq_sum_3 += voltage_3 * voltage_3
+        current_sq_sum_3 += current_3 * current_3
+        await send_adc_frame(dut, status, voltage_3, current_3)
+
+    await ClockCycles(dut.clk, 80)
+    assert await host_read(dut, 0x20) == 3
+    assert await host_read(dut, 0x21) == math.isqrt(voltage_sq_sum_3 // 256)
+    assert await host_read(dut, 0x22) == math.isqrt(current_sq_sum_3 // 256)
+    assert await host_read(dut, 0x23) == active_sum_3 // 256
+    expected_energy += active_sum_3
+    assert await host_read(dut, 0x24) == (expected_energy & ((1 << 64) - 1))

@@ -30,6 +30,11 @@ Retry if the sequence changed. `IRQn` stays low after a new snapshot until
 | `0x12` | `SUM_CURRENT_SQ` | No | Sum of squared signed current samples |
 | `0x13` | `SUM_VOLTAGE` | Yes | Sum of signed voltage samples |
 | `0x14` | `SUM_CURRENT` | Yes | Sum of signed current samples |
+| `0x20` | `MEASUREMENT_SEQ` | No | Completed post-processing counter in bits 31:0 |
+| `0x21` | `VOLTAGE_RMS` | No | Integer RMS in raw ADC counts |
+| `0x22` | `CURRENT_RMS` | No | Integer RMS in raw ADC counts |
+| `0x23` | `ACTIVE_POWER` | Yes | Window-average `voltage * current` in raw count-squared units |
+| `0x24` | `ACTIVE_ENERGY` | Yes | Cumulative signed sum of accepted `voltage * current` products |
 
 Unknown addresses return zero. The bootstrap interface has no write
 transactions or transaction CRC. The planned interface expands to 16-bit

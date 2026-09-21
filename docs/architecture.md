@@ -42,7 +42,8 @@ making a serialized multiplier practical.
 | Stage | Deliverable | Status |
 |---|---|---|
 | 0 | 72-bit ADC SPI capture, raw moments, host SPI snapshots, IRQ handshake | Implemented |
-| 1 | ADC CRC/errors, offset/gain/phase correction, RMS, active power and 64-bit import/export energy | Next |
+| 1 | Integer RMS, active power and signed 64-bit energy | Implemented |
+| 1b | ADC CRC/errors, offset/gain/phase correction and split import/export energy | Next |
 | 2 | Q/S/PF, frequency, phase angle, zero crossing, peaks, sag/swell/overcurrent and event records | Planned |
 | 3 | Cycle resampling, selected harmonics 2-15, THD, waveform FIFO | Planned |
 | Host/FPGA | Full FFT, interharmonic grouping, long waveform capture and golden-reference comparison | Planned |
@@ -87,16 +88,18 @@ scale registers and sticky overflow.
 ## FPGA validation
 
 The iCE40UP5K on an iCEBreaker or UPduino has about 5K LUTs and eight hardware
-multipliers. The current core, including both SPI interfaces and one
-time-multiplexed 24x24 MAC, synthesizes with Yosys to 2,923 LUT4s and 1,065
-flip-flops. It therefore fits as the preferred low-cost capture/metrology
-bench, but a substantial harmonic engine will require aggressive sharing.
+multipliers. The current core, including both SPI interfaces, one
+time-multiplexed 24x24 MAC, serial integer square root, RMS, active power, and
+energy, synthesizes with Yosys to 3,688 LUT4s and 1,525 flip-flops. It
+therefore fits as the preferred low-cost capture/metrology bench, but a
+substantial harmonic engine will require aggressive sharing.
 
 An OrangeCrab ECP5-25F is the recommended full validation target: roughly 24K
 LUTs, embedded RAM, and 28 18x18 multipliers provide room for waveform buffers
-and 8-15 Goertzel bins. The current baseline synthesizes to 6,279 ECP5 LUT4s
-and 1,065 flip-flops before device-specific multiplier optimization. Use an
-ECP5-85F board if validating parallel harmonic engines or a full FFT reference.
+and 8-15 Goertzel bins. The current Stage 1 baseline synthesizes to 7,294 ECP5
+LUT4s and 1,527 flip-flops before device-specific multiplier optimization.
+Use an ECP5-85F board if validating parallel harmonic engines or a full FFT
+reference.
 
 Both iCE40 and ECP5 have mature open Yosys/nextpnr flows. Validation should
 compare cycle-for-cycle RTL output against Python/NumPy vectors containing DC
