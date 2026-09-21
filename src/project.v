@@ -40,6 +40,23 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .current_sample(current_sample)
   );
 
+  wire signed [23:0] voltage_offset;
+  wire signed [23:0] current_offset;
+  wire signed [24:0] voltage_corrected_wide =
+      {voltage_sample[23], voltage_sample} -
+      {voltage_offset[23], voltage_offset};
+  wire signed [24:0] current_corrected_wide =
+      {current_sample[23], current_sample} -
+      {current_offset[23], current_offset};
+  wire signed [23:0] calibrated_voltage =
+      (voltage_corrected_wide > 25'sd8388607) ? 24'sh7fffff :
+      (voltage_corrected_wide < -25'sd8388608) ? 24'sh800000 :
+      voltage_corrected_wide[23:0];
+  wire signed [23:0] calibrated_current =
+      (current_corrected_wide > 25'sd8388607) ? 24'sh7fffff :
+      (current_corrected_wide < -25'sd8388608) ? 24'sh800000 :
+      current_corrected_wide[23:0];
+
   wire snapshot_valid;
   wire [31:0] snapshot_sequence;
   wire signed [63:0] sum_active_power;
@@ -54,8 +71,8 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .clk(clk),
       .rst_n(rst_n),
       .sample_valid(sample_valid),
-      .voltage_sample(voltage_sample),
-      .current_sample(current_sample),
+      .voltage_sample(calibrated_voltage),
+      .current_sample(calibrated_current),
       .snapshot_valid(snapshot_valid),
       .snapshot_sequence(snapshot_sequence),
       .sum_active_power(sum_active_power),
@@ -91,6 +108,8 @@ module tt_um_whatnick_ctvt_energy_dsp (
 
   wire host_miso;
   host_spi_readout host_readout (
+      .clk(clk),
+      .rst_n(rst_n),
       .host_cs_n(ui_in[2]),
       .host_sclk(ui_in[3]),
       .host_mosi(ui_in[4]),
@@ -106,7 +125,9 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .current_rms(current_rms),
       .active_power(active_power),
       .active_energy(active_energy),
-      .adc_status(adc_status)
+      .adc_status(adc_status),
+      .voltage_offset(voltage_offset),
+      .current_offset(current_offset)
   );
 
   reg measurement_pending;
@@ -125,8 +146,8 @@ module tt_um_whatnick_ctvt_energy_dsp (
   assign uo_out[3] = host_miso;
   assign uo_out[4] = ~measurement_pending;
   assign uo_out[5] = sample_valid;
-  assign uo_out[6] = voltage_sample[23];
-  assign uo_out[7] = current_sample[23];
+  assign uo_out[6] = calibrated_voltage[23];
+  assign uo_out[7] = calibrated_current[23];
 
   assign uio_out = 8'b0;
   assign uio_oe = 8'b0;

@@ -89,15 +89,16 @@ scale registers and sticky overflow.
 
 The iCE40UP5K on an iCEBreaker or UPduino has about 5K LUTs and eight hardware
 multipliers. The current core, including both SPI interfaces, one
-time-multiplexed 24x24 MAC, serial integer square root, RMS, active power, and
-energy, synthesizes with Yosys to 3,688 LUT4s and 1,525 flip-flops. It
-therefore fits as the preferred low-cost capture/metrology bench, but a
-substantial harmonic engine will require aggressive sharing.
+time-multiplexed 24x24 MAC, serial integer square root, RMS, active power,
+energy, and writable offset correction, synthesizes with Yosys to 4,067 LUT4s
+and 1,604 flip-flops. It therefore fits as the preferred low-cost
+capture/metrology bench, but a substantial harmonic engine will require
+aggressive sharing.
 
 An OrangeCrab ECP5-25F is the recommended full validation target: roughly 24K
 LUTs, embedded RAM, and 28 18x18 multipliers provide room for waveform buffers
-and 8-15 Goertzel bins. The current Stage 1 baseline synthesizes to 7,294 ECP5
-LUT4s and 1,527 flip-flops before device-specific multiplier optimization.
+and 8-15 Goertzel bins. The current Stage 1 baseline synthesizes to 7,848 ECP5
+LUT4s and 1,606 flip-flops before device-specific multiplier optimization.
 Use an ECP5-85F board if validating parallel harmonic engines or a full FFT
 reference.
 

@@ -56,8 +56,33 @@ async def host_read(dut, address: int) -> int:
         await Timer(100, unit="ns")
 
     dut.ui_in.value = int(dut.ui_in.value) | 0x04
-    await Timer(1, unit="ns")
+    await Timer(100, unit="ns")
     return result
+
+
+async def host_write(dut, address: int, data: int) -> None:
+    dut.ui_in.value = int(dut.ui_in.value) & ~0x04
+    await ClockCycles(dut.clk, 4)
+
+    command = 0x80 | (address & 0x7F)
+    for bit in range(7, -1, -1):
+        value = int(dut.ui_in.value)
+        value = (value | 0x10) if ((command >> bit) & 1) else (value & ~0x10)
+        dut.ui_in.value = value & ~0x08
+        await ClockCycles(dut.clk, 8)
+        dut.ui_in.value = int(dut.ui_in.value) | 0x08
+        await ClockCycles(dut.clk, 8)
+
+    for bit in range(31, -1, -1):
+        value = int(dut.ui_in.value)
+        value = (value | 0x10) if ((data >> bit) & 1) else (value & ~0x10)
+        dut.ui_in.value = value & ~0x08
+        await ClockCycles(dut.clk, 8)
+        dut.ui_in.value = int(dut.ui_in.value) | 0x08
+        await ClockCycles(dut.clk, 8)
+
+    dut.ui_in.value = int(dut.ui_in.value) | 0x04
+    await ClockCycles(dut.clk, 4)
 
 
 @cocotb.test()
@@ -72,11 +97,20 @@ async def test_capture_accumulate_and_readout(dut):
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 4)
 
+    voltage_offset = 10
+    current_offset = 5
+    await host_write(dut, 0x40, voltage_offset)
+    await host_write(dut, 0x41, current_offset)
+    assert await host_read(dut, 0x40) == voltage_offset
+    assert await host_read(dut, 0x41) == current_offset
+
     voltage = 1000
     current = -250
     status = 0x050000
     for _ in range(256):
-        await send_adc_frame(dut, status, voltage, current)
+        await send_adc_frame(
+            dut, status, voltage + voltage_offset, current + current_offset
+        )
 
     await ClockCycles(dut.clk, 80)
     assert ((int(dut.uo_out.value) >> 4) & 1) == 0
@@ -103,7 +137,9 @@ async def test_capture_accumulate_and_readout(dut):
     voltage_2 = -300
     current_2 = 400
     for _ in range(256):
-        await send_adc_frame(dut, status, voltage_2, current_2)
+        await send_adc_frame(
+            dut, status, voltage_2 + voltage_offset, current_2 + current_offset
+        )
 
     await ClockCycles(dut.clk, 80)
     assert await host_read(dut, 0x20) == 2
@@ -122,7 +158,9 @@ async def test_capture_accumulate_and_readout(dut):
         active_sum_3 += voltage_3 * current_3
         voltage_sq_sum_3 += voltage_3 * voltage_3
         current_sq_sum_3 += current_3 * current_3
-        await send_adc_frame(dut, status, voltage_3, current_3)
+        await send_adc_frame(
+            dut, status, voltage_3 + voltage_offset, current_3 + current_offset
+        )
 
     await ClockCycles(dut.clk, 80)
     assert await host_read(dut, 0x20) == 3
@@ -130,4 +168,29 @@ async def test_capture_accumulate_and_readout(dut):
     assert await host_read(dut, 0x22) == math.isqrt(current_sq_sum_3 // 256)
     assert await host_read(dut, 0x23) == active_sum_3 // 256
     expected_energy += active_sum_3
+    assert await host_read(dut, 0x24) == (expected_energy & ((1 << 64) - 1))
+
+    await host_write(dut, 0x40, signed24(-10))
+    await host_write(dut, 0x41, signed24(10))
+    assert await host_read(dut, 0x40) == ((-10) & ((1 << 64) - 1))
+    assert await host_read(dut, 0x41) == 10
+
+    saturated_voltage = (1 << 23) - 1
+    saturated_current = -(1 << 23)
+    for _ in range(256):
+        await send_adc_frame(dut, status, saturated_voltage, saturated_current)
+
+    await ClockCycles(dut.clk, 80)
+    saturated_active_sum = saturated_voltage * saturated_current * 256
+    assert await host_read(dut, 0x20) == 4
+    assert await host_read(dut, 0x13) == saturated_voltage * 256
+    assert await host_read(dut, 0x14) == (
+        (saturated_current * 256) & ((1 << 64) - 1)
+    )
+    assert await host_read(dut, 0x21) == saturated_voltage
+    assert await host_read(dut, 0x22) == abs(saturated_current)
+    assert await host_read(dut, 0x23) == (
+        (saturated_voltage * saturated_current) & ((1 << 64) - 1)
+    )
+    expected_energy += saturated_active_sum
     assert await host_read(dut, 0x24) == (expected_energy & ((1 << 64) - 1))

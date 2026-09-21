@@ -16,8 +16,11 @@ The working RTL currently implements:
   `sum(i^2)`;
 - serial integer square-root processing for voltage/current RMS, window-average
   active power, and cumulative signed active-energy quanta;
+- host-writable signed voltage/current ADC-count offsets applied before raw and
+  processed accumulation, with register readback;
 - atomic result registers with a monotonically increasing sequence number;
-- a read-only host SPI interface and level interrupt with explicit acknowledge;
+- a host SPI readout/calibration interface and level interrupt with explicit
+  acknowledge;
 - a cocotb test that drives 256 ADC frames and verifies every exported result.
 
 ```text
@@ -74,8 +77,9 @@ multi-register transfer and retry if it changed. See the complete
 
 - **iCEBreaker / iCE40UP5K:** preferred low-cost PMOD bench for the current
   SPI capture and serialized MAC core. With integer RMS and energy enabled, a
-  Yosys `synth_ice40` check uses 3,688 LUT4s and 1,525 flip-flops, leaving room
-  for compact calibration and event logic but not a broad parallel FFT.
+  Yosys `synth_ice40` check including writable offset correction uses 4,067
+  LUT4s and 1,604 flip-flops, leaving room for compact event logic but not a
+  broad parallel FFT.
 - **OrangeCrab ECP5-25F:** recommended full-pipeline target with comfortable
   room for event buffering and a 15-bin Goertzel engine.
 - **ECP5-85F board:** fallback for parallel comparison engines, long waveform

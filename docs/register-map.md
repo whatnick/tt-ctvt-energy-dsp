@@ -13,6 +13,11 @@ The host uses SPI mode 0:
    most-significant bit first.
 4. Deassert `Host CSn`.
 
+For a write, set address bit 7, send the remaining 7-bit register address,
+then send one 32-bit data word most-significant bit first. Host SPI inputs pass
+through two-stage synchronizers into the 25 MHz core-clock domain; keep host
+SCLK at or below 2 MHz.
+
 All measurement registers belong to the last completed 256-sample window.
 Read `SNAPSHOT_SEQ`, read the required values, and read `SNAPSHOT_SEQ` again.
 Retry if the sequence changed. `IRQn` stays low after a new snapshot until
@@ -35,9 +40,14 @@ Retry if the sequence changed. `IRQn` stays low after a new snapshot until
 | `0x22` | `CURRENT_RMS` | No | Integer RMS in raw ADC counts |
 | `0x23` | `ACTIVE_POWER` | Yes | Window-average `voltage * current` in raw count-squared units |
 | `0x24` | `ACTIVE_ENERGY` | Yes | Cumulative signed sum of accepted `voltage * current` products |
+| `0x40` | `VOLTAGE_OFFSET` | Yes | Signed 24-bit ADC-count offset subtracted before accumulation |
+| `0x41` | `CURRENT_OFFSET` | Yes | Signed 24-bit ADC-count offset subtracted before accumulation |
 
-Unknown addresses return zero. The bootstrap interface has no write
-transactions or transaction CRC. The planned interface expands to 16-bit
-addresses, 32-bit data, burst auto-increment, configuration/calibration
-registers, latched multiword reads, interrupt status/mask registers, and an
+Offset subtraction saturates at the signed 24-bit ADC limits rather than
+wrapping. Program offsets before acquisition or while ADC frame delivery is
+paused so one 256-sample window never contains two calibration configurations.
+
+Unknown addresses return zero and unknown writes are ignored. The planned
+interface expands to 16-bit addresses, burst auto-increment, gain/phase
+calibration, latched multiword reads, interrupt status/mask registers, and an
 optional host CRC.
