@@ -1,7 +1,8 @@
 # Bootstrap SPI register map
 
-This is the implemented Stage 0 read-only interface. It intentionally exposes
-raw moments before the calibrated measurement register map is frozen.
+This is the implemented bootstrap measurement and calibration interface. It
+exposes raw moments, processed measurements, and writable ADC offset
+calibration before the final register map is frozen.
 
 ## Transaction
 
@@ -19,6 +20,9 @@ through two-stage synchronizers into the 25 MHz core-clock domain; keep host
 SCLK at or below 2 MHz.
 
 All measurement registers belong to the last completed 256-sample window.
+Finite-window datapaths are right-sized internally and sign-extended or
+zero-extended to preserve this 64-bit wire format. Cumulative
+`ACTIVE_ENERGY` remains signed 64-bit.
 Read `SNAPSHOT_SEQ`, read the required values, and read `SNAPSHOT_SEQ` again.
 Retry if the sequence changed. `IRQn` stays low after a new snapshot until
 `IRQ acknowledge` is high for one core clock.

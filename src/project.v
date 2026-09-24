@@ -42,28 +42,15 @@ module tt_um_whatnick_ctvt_energy_dsp (
 
   wire signed [23:0] voltage_offset;
   wire signed [23:0] current_offset;
-  wire signed [24:0] voltage_corrected_wide =
-      {voltage_sample[23], voltage_sample} -
-      {voltage_offset[23], voltage_offset};
-  wire signed [24:0] current_corrected_wide =
-      {current_sample[23], current_sample} -
-      {current_offset[23], current_offset};
-  wire signed [23:0] calibrated_voltage =
-      (voltage_corrected_wide > 25'sd8388607) ? 24'sh7fffff :
-      (voltage_corrected_wide < -25'sd8388608) ? 24'sh800000 :
-      voltage_corrected_wide[23:0];
-  wire signed [23:0] calibrated_current =
-      (current_corrected_wide > 25'sd8388607) ? 24'sh7fffff :
-      (current_corrected_wide < -25'sd8388608) ? 24'sh800000 :
-      current_corrected_wide[23:0];
-
   wire snapshot_valid;
   wire [31:0] snapshot_sequence;
-  wire signed [63:0] sum_active_power;
-  wire [63:0] sum_voltage_sq;
-  wire [63:0] sum_current_sq;
-  wire signed [63:0] sum_voltage;
-  wire signed [63:0] sum_current;
+  wire signed [55:0] sum_active_power;
+  wire [55:0] sum_voltage_sq;
+  wire [55:0] sum_current_sq;
+  wire signed [31:0] sum_voltage;
+  wire signed [31:0] sum_current;
+  wire signed [23:0] calibrated_voltage;
+  wire signed [23:0] calibrated_current;
 
   energy_accumulator #(
       .WINDOW_LOG2(8)
@@ -71,22 +58,26 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .clk(clk),
       .rst_n(rst_n),
       .sample_valid(sample_valid),
-      .voltage_sample(calibrated_voltage),
-      .current_sample(calibrated_current),
+      .voltage_sample(voltage_sample),
+      .current_sample(current_sample),
+      .voltage_offset(voltage_offset),
+      .current_offset(current_offset),
       .snapshot_valid(snapshot_valid),
       .snapshot_sequence(snapshot_sequence),
       .sum_active_power(sum_active_power),
       .sum_voltage_sq(sum_voltage_sq),
       .sum_current_sq(sum_current_sq),
       .sum_voltage(sum_voltage),
-      .sum_current(sum_current)
+      .sum_current(sum_current),
+      .calibrated_voltage(calibrated_voltage),
+      .calibrated_current(calibrated_current)
   );
 
   wire measurement_valid;
   wire [31:0] measurement_sequence;
-  wire [31:0] voltage_rms;
-  wire [31:0] current_rms;
-  wire signed [63:0] active_power;
+  wire [23:0] voltage_rms;
+  wire [23:0] current_rms;
+  wire signed [55:0] active_power;
   wire signed [63:0] active_energy;
 
   metering_postprocess #(
@@ -131,7 +122,7 @@ module tt_um_whatnick_ctvt_energy_dsp (
   );
 
   reg measurement_pending;
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n)
       measurement_pending <= 1'b0;
     else if (measurement_valid)

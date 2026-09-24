@@ -43,20 +43,20 @@ async def host_read(dut, address: int) -> int:
         value = int(dut.ui_in.value)
         value = (value | 0x10) if ((address >> bit) & 1) else (value & ~0x10)
         dut.ui_in.value = value & ~0x08
-        await Timer(100, unit="ns")
+        await Timer(250, unit="ns")
         dut.ui_in.value = int(dut.ui_in.value) | 0x08
-        await Timer(100, unit="ns")
+        await Timer(250, unit="ns")
 
     result = 0
     for _ in range(64):
         dut.ui_in.value = int(dut.ui_in.value) & ~0x08
-        await Timer(100, unit="ns")
+        await Timer(250, unit="ns")
         result = (result << 1) | int(dut.host_miso.value)
         dut.ui_in.value = int(dut.ui_in.value) | 0x08
-        await Timer(100, unit="ns")
+        await Timer(250, unit="ns")
 
     dut.ui_in.value = int(dut.ui_in.value) | 0x04
-    await Timer(100, unit="ns")
+    await Timer(250, unit="ns")
     return result
 
 
@@ -112,7 +112,7 @@ async def test_capture_accumulate_and_readout(dut):
             dut, status, voltage + voltage_offset, current + current_offset
         )
 
-    await ClockCycles(dut.clk, 80)
+    await ClockCycles(dut.clk, 160)
     assert ((int(dut.uo_out.value) >> 4) & 1) == 0
     assert await host_read(dut, 0x00) == 0x4354565444535031
     assert await host_read(dut, 0x01) == 1
@@ -141,7 +141,7 @@ async def test_capture_accumulate_and_readout(dut):
             dut, status, voltage_2 + voltage_offset, current_2 + current_offset
         )
 
-    await ClockCycles(dut.clk, 80)
+    await ClockCycles(dut.clk, 160)
     assert await host_read(dut, 0x20) == 2
     assert await host_read(dut, 0x21) == abs(voltage_2)
     assert await host_read(dut, 0x22) == abs(current_2)
@@ -162,7 +162,7 @@ async def test_capture_accumulate_and_readout(dut):
             dut, status, voltage_3 + voltage_offset, current_3 + current_offset
         )
 
-    await ClockCycles(dut.clk, 80)
+    await ClockCycles(dut.clk, 160)
     assert await host_read(dut, 0x20) == 3
     assert await host_read(dut, 0x21) == math.isqrt(voltage_sq_sum_3 // 256)
     assert await host_read(dut, 0x22) == math.isqrt(current_sq_sum_3 // 256)
@@ -180,7 +180,7 @@ async def test_capture_accumulate_and_readout(dut):
     for _ in range(256):
         await send_adc_frame(dut, status, saturated_voltage, saturated_current)
 
-    await ClockCycles(dut.clk, 80)
+    await ClockCycles(dut.clk, 160)
     saturated_active_sum = saturated_voltage * saturated_current * 256
     assert await host_read(dut, 0x20) == 4
     assert await host_read(dut, 0x13) == saturated_voltage * 256

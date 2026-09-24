@@ -21,8 +21,8 @@ remain external and independently replaceable.
    check status/CRC, count missed frames, and timestamp accepted samples.
 2. **Calibration:** subtract signed offset, apply fixed-point gain, saturate,
    and phase-align current using integer delay plus a fractional-delay FIR.
-3. **Moments:** time-share one multiplier across `v*i`, `v^2`, and `i^2`;
-   accumulate sums, peaks, and minima/maxima.
+3. **Moments:** time-share one 24-cycle signed multiplier across `v*i`, `v^2`,
+   and `i^2`, then update all five moments through one shared adder.
 4. **Fundamental metrology:** derive RMS, active power, energy, frequency,
    zero crossings, phase, reactive/apparent power, and power factor.
 5. **Events:** fast peak and RMS overcurrent, sag, swell, frequency limits,
@@ -87,13 +87,14 @@ scale registers and sticky overflow.
 
 ## FPGA validation
 
-The iCE40UP5K on an iCEBreaker or UPduino has about 5K LUTs and eight hardware
-multipliers. The current core, including both SPI interfaces, one
-time-multiplexed 24x24 MAC, serial integer square root, RMS, active power,
-energy, and writable offset correction, synthesizes with Yosys to 4,067 LUT4s
-and 1,604 flip-flops. It therefore fits as the preferred low-cost
-capture/metrology bench, but a substantial harmonic engine will require
-aggressive sharing.
+The iCE40UP5K FabricFox has 5,280 logic cells and eight hardware multipliers.
+The current core, including both SPI interfaces, a serialized 24x24
+multiplier, shared accumulation and calibration arithmetic, integer square
+root, RMS, active power, 64-bit cumulative energy, and writable offset
+correction, routes at 2,620 logic cells (49%). Its seed-10 routed Fmax is
+25.33 MHz against the 25 MHz target. All block RAM and SPRAM remains available
+for event and waveform buffering. See the
+[utilization review](utilization-review.md).
 
 An OrangeCrab ECP5-25F is the recommended full validation target: roughly 24K
 LUTs, embedded RAM, and 28 18x18 multipliers provide room for waveform buffers

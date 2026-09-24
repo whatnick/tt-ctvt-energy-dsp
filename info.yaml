@@ -19,6 +19,7 @@ project:
   source_files:
     - "project.v"
     - "adc_spi_capture.v"
+    - "serial_multiplier.v"
     - "energy_accumulator.v"
     - "integer_sqrt.v"
     - "metering_postprocess.v"

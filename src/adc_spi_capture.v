@@ -33,7 +33,7 @@ module adc_spi_capture #(
   wire [71:0] shifted_frame = {shift_register[70:0], adc_dout};
   assign adc_din = 1'b0;
 
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n) begin
       adc_cs_n <= 1'b1;
       adc_sclk <= 1'b0;
