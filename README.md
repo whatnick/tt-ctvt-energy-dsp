@@ -13,7 +13,7 @@ The working RTL currently implements:
 
 - ADS131M02-style 72-bit frame capture: status, voltage, and current;
 - 256-sample accumulation of `sum(v)`, `sum(i)`, `sum(v*i)`, `sum(v^2)`, and
-  `sum(i^2)`;
+  `sum(i^2)` using one serialized signed multiplier and one shared adder;
 - serial integer square-root processing for voltage/current RMS, window-average
   active power, and cumulative signed active-energy quanta;
 - host-writable signed voltage/current ADC-count offsets applied before raw and
@@ -25,7 +25,7 @@ The working RTL currently implements:
 
 ```text
               +---------------- Tiny Tapeout ASIC ----------------+
-ADS131M02 --->| SPI capture -> calibration -> shared MAC          |
+ADS131M02 --->| SPI capture -> calibration -> serial arithmetic   |
  DRDY/DOUT    |                    |                               |
               |                    +-> moments / energy / events  |
 Host SPI <----| snapshot registers |                               |
@@ -75,11 +75,10 @@ multi-register transfer and retry if it changed. See the complete
 
 ## FPGA validation
 
-- **iCEBreaker / iCE40UP5K:** preferred low-cost PMOD bench for the current
-  SPI capture and serialized MAC core. With integer RMS and energy enabled, a
-  Yosys `synth_ice40` check including writable offset correction uses 4,067
-  LUT4s and 1,604 flip-flops, leaving room for compact event logic but not a
-  broad parallel FFT.
+- **FabricFox / iCE40UP5K:** preferred low-cost PMOD bench for the current
+  SPI capture and serialized arithmetic core. The reproducible seed-10 build
+  routes at 2,620 of 5,280 logic cells (49%) and reaches 25.33 MHz, leaving
+  all block RAM and SPRAM available for event and waveform buffering.
 - **OrangeCrab ECP5-25F:** recommended full-pipeline target with comfortable
   room for event buffering and a 15-bin Goertzel engine.
 - **ECP5-85F board:** fallback for parallel comparison engines, long waveform
@@ -98,7 +97,9 @@ make -B
 ```
 
 The test requires Icarus Verilog. Tiny Tapeout GitHub Actions run simulation,
-GDS hardening, documentation, and FPGA checks automatically.
+GDS hardening, documentation, and FPGA checks automatically. See the
+[utilization review](docs/utilization-review.md) for the optimization rationale
+and measured FabricFox results.
 
 ## References
 

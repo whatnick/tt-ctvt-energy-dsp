@@ -10,10 +10,24 @@ jobs:
   fpga:
     runs-on: ubuntu-24.04
     steps:
-      - name: checkout repo
+      - name: Checkout repo
         uses: actions/checkout@v6
-        with:
-          submodules: recursive
 
-      - name: FPGA bitstream for TT ASIC Sim (ICE40UP5K)
-        uses: TinyTapeout/tt-gds-action/fpga/ice40up5k@ttsky26d
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install YoWASP FPGA tools
+        run: pip install yowasp-yosys yowasp-nextpnr-ice40
+
+      - name: Build FabricFox bitstream
+        run: make -C fpga report
+
+      - name: Upload bitstream and reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: fabricfox-bitstream
+          path: |
+            fpga/build/tt_um_whatnick_ctvt_energy_dsp.bin
+            fpga/build/nextpnr.log

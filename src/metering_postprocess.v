@@ -11,14 +11,14 @@ module metering_postprocess #(
     input  wire               clk,
     input  wire               rst_n,
     input  wire               snapshot_valid,
-    input  wire signed [63:0] sum_active_power,
-    input  wire [63:0]        sum_voltage_sq,
-    input  wire [63:0]        sum_current_sq,
+    input  wire signed [55:0] sum_active_power,
+    input  wire [55:0]        sum_voltage_sq,
+    input  wire [55:0]        sum_current_sq,
     output reg                measurement_valid,
     output reg  [31:0]        measurement_sequence,
-    output reg  [31:0]        voltage_rms,
-    output reg  [31:0]        current_rms,
-    output reg  signed [63:0] active_power,
+    output reg  [23:0]        voltage_rms,
+    output reg  [23:0]        current_rms,
+    output reg  signed [55:0] active_power,
     output reg  signed [63:0] active_energy
 );
 
@@ -29,10 +29,10 @@ module metering_postprocess #(
 
   reg [1:0] state;
   reg sqrt_start;
-  reg [63:0] sqrt_radicand;
+  reg [47:0] sqrt_radicand;
   wire sqrt_busy;
   wire sqrt_done;
-  wire [31:0] sqrt_root;
+  wire [23:0] sqrt_root;
 
   integer_sqrt sqrt_unit (
       .clk(clk),
@@ -44,16 +44,16 @@ module metering_postprocess #(
       .root(sqrt_root)
   );
 
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n) begin
       state <= IDLE;
       sqrt_start <= 1'b0;
-      sqrt_radicand <= 64'b0;
+      sqrt_radicand <= 48'b0;
       measurement_valid <= 1'b0;
       measurement_sequence <= 32'b0;
-      voltage_rms <= 32'b0;
-      current_rms <= 32'b0;
-      active_power <= 64'sd0;
+      voltage_rms <= 24'b0;
+      current_rms <= 24'b0;
+      active_power <= 56'sd0;
       active_energy <= 64'sd0;
     end else begin
       sqrt_start <= 1'b0;
@@ -62,7 +62,8 @@ module metering_postprocess #(
         IDLE: begin
           if (snapshot_valid) begin
             active_power <= sum_active_power >>> WINDOW_LOG2;
-            active_energy <= active_energy + sum_active_power;
+            active_energy <= active_energy +
+                {{8{sum_active_power[55]}}, sum_active_power};
             sqrt_radicand <= sum_voltage_sq >> WINDOW_LOG2;
             sqrt_start <= 1'b1;
             state <= VOLTAGE_ROOT;

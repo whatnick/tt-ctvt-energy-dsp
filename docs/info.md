@@ -4,8 +4,8 @@ CTVT Energy DSP controls an ADS131M02 on the Whatnick CTVT PMOD. When `DRDYn`
 falls, the SPI master clocks a 72-bit response frame into the ASIC: one 24-bit
 status word followed by signed 24-bit voltage and current samples.
 
-The current implementation accumulates five raw moments over 256 simultaneous
-samples:
+The current implementation applies saturating offset correction and
+accumulates five raw moments over 256 simultaneous samples:
 
 - voltage and current sums for DC-offset estimation;
 - voltage squared and current squared for RMS;
@@ -13,12 +13,15 @@ samples:
 
 At the end of each window, all accumulators are copied to a stable snapshot,
 `SNAPSHOT_SEQ` increments, and `IRQn` remains low until `IRQ_ACK` is asserted.
-A second SPI interface lets a host read each 64-bit result.
+A serialized signed multiplier and shared adder perform the arithmetic. A
+second SPI interface lets a host read each result in a stable 64-bit wire
+format. The core also calculates integer voltage/current RMS, window-average
+active power, and cumulative signed active energy.
 
-The planned processing stages add offset/gain correction, fractional phase
-compensation, RMS, active/reactive/apparent energy, power factor, frequency,
-phase angle, sag/swell/overcurrent events, and selected harmonics using a
-serialized Goertzel engine.
+The planned processing stages add gain and fractional phase compensation,
+reactive/apparent energy, power factor, frequency, phase angle,
+sag/swell/overcurrent events, and selected harmonics using a serialized
+Goertzel engine.
 
 ## How to test
 
