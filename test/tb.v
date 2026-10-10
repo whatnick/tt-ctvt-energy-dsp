@@ -22,9 +22,11 @@ module tb ();
   wire [7:0] uo_out;
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
-  wire adc_cs_n = uo_out[0];
-  wire adc_sclk = uo_out[1];
-  wire host_miso = uo_out[3];
+  wire adc_cs_n = uio_out[0];
+  wire adc_sclk = uio_out[3];
+  wire adc_reset_n = uio_out[5];
+  wire adc_mclk = uio_out[6];
+  wire host_miso = uo_out[5];
 `ifdef GL_TEST
   wire VPWR = 1'b1;
   wire VGND = 1'b0;

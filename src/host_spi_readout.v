@@ -13,15 +13,15 @@ module host_spi_readout (
     input  wire               host_mosi,
     output wire               host_miso,
     input  wire [31:0]        snapshot_sequence,
-    input  wire signed [63:0] sum_active_power,
-    input  wire [63:0]        sum_voltage_sq,
-    input  wire [63:0]        sum_current_sq,
-    input  wire signed [63:0] sum_voltage,
-    input  wire signed [63:0] sum_current,
+    input  wire signed [55:0] sum_active_power,
+    input  wire [55:0]        sum_voltage_sq,
+    input  wire [55:0]        sum_current_sq,
+    input  wire signed [31:0] sum_voltage,
+    input  wire signed [31:0] sum_current,
     input  wire [31:0]        measurement_sequence,
-    input  wire [31:0]        voltage_rms,
-    input  wire [31:0]        current_rms,
-    input  wire signed [63:0] active_power,
+    input  wire [23:0]        voltage_rms,
+    input  wire [23:0]        current_rms,
+    input  wire signed [55:0] active_power,
     input  wire signed [63:0] active_energy,
     input  wire [23:0]        adc_status,
     output reg  signed [23:0] voltage_offset,
@@ -38,14 +38,27 @@ module host_spi_readout (
   reg [7:0] address_shift;
   reg [6:0] bit_count;
   reg [31:0] write_shift;
-  reg [63:0] transmit_shift;
+  reg [63:0] read_shift;
+  reg read_started;
   reg transaction_write;
 
   wire sclk_rising = host_sclk_sync && !host_sclk_delayed;
+  wire sclk_falling = !host_sclk_sync && host_sclk_delayed;
   wire [7:0] received_address = {address_shift[6:0], host_mosi_sync};
   wire [31:0] received_write_data = {write_shift[30:0], host_mosi_sync};
 
-  assign host_miso = transmit_shift[63];
+  wire [63:0] extended_sum_active_power =
+      {{8{sum_active_power[55]}}, sum_active_power};
+  wire [63:0] extended_sum_voltage_sq = {8'b0, sum_voltage_sq};
+  wire [63:0] extended_sum_current_sq = {8'b0, sum_current_sq};
+  wire [63:0] extended_sum_voltage =
+      {{32{sum_voltage[31]}}, sum_voltage};
+  wire [63:0] extended_sum_current =
+      {{32{sum_current[31]}}, sum_current};
+  wire [63:0] extended_active_power =
+      {{8{active_power[55]}}, active_power};
+
+  assign host_miso = read_shift[63];
 
   function [63:0] read_register;
     input [6:0] address;
@@ -54,15 +67,15 @@ module host_spi_readout (
         7'h00: read_register = 64'h4354_5654_4453_5031;
         7'h01: read_register = {32'b0, snapshot_sequence};
         7'h02: read_register = {40'b0, adc_status};
-        7'h10: read_register = sum_active_power;
-        7'h11: read_register = sum_voltage_sq;
-        7'h12: read_register = sum_current_sq;
-        7'h13: read_register = sum_voltage;
-        7'h14: read_register = sum_current;
+        7'h10: read_register = extended_sum_active_power;
+        7'h11: read_register = extended_sum_voltage_sq;
+        7'h12: read_register = extended_sum_current_sq;
+        7'h13: read_register = extended_sum_voltage;
+        7'h14: read_register = extended_sum_current;
         7'h20: read_register = {32'b0, measurement_sequence};
-        7'h21: read_register = {32'b0, voltage_rms};
-        7'h22: read_register = {32'b0, current_rms};
-        7'h23: read_register = active_power;
+        7'h21: read_register = {40'b0, voltage_rms};
+        7'h22: read_register = {40'b0, current_rms};
+        7'h23: read_register = extended_active_power;
         7'h24: read_register = active_energy;
         7'h40: read_register = {{40{voltage_offset[23]}}, voltage_offset};
         7'h41: read_register = {{40{current_offset[23]}}, current_offset};
@@ -71,7 +84,7 @@ module host_spi_readout (
     end
   endfunction
 
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n) begin
       host_cs_meta <= 1'b1;
       host_cs_sync <= 1'b1;
@@ -83,7 +96,8 @@ module host_spi_readout (
       address_shift <= 8'b0;
       bit_count <= 7'd0;
       write_shift <= 32'b0;
-      transmit_shift <= 64'b0;
+      read_shift <= 64'b0;
+      read_started <= 1'b0;
       transaction_write <= 1'b0;
       voltage_offset <= 24'sd0;
       current_offset <= 24'sd0;
@@ -99,7 +113,8 @@ module host_spi_readout (
         address_shift <= 8'b0;
         bit_count <= 7'd0;
         write_shift <= 32'b0;
-        transmit_shift <= 64'b0;
+        read_shift <= 64'b0;
+        read_started <= 1'b0;
         transaction_write <= 1'b0;
       end else if (sclk_rising) begin
         if (bit_count < 7) begin
@@ -108,8 +123,9 @@ module host_spi_readout (
         end else if (bit_count == 7) begin
           address_shift <= received_address;
           transaction_write <= received_address[7];
-          if (!received_address[7])
-            transmit_shift <= read_register(received_address[6:0]);
+          if (!received_address[7]) begin
+            read_shift <= read_register(received_address[6:0]);
+          end
           bit_count <= bit_count + 1'b1;
         end else if (transaction_write && bit_count < 40) begin
           write_shift <= received_write_data;
@@ -122,9 +138,16 @@ module host_spi_readout (
             endcase
           end
         end else if (!transaction_write) begin
-          transmit_shift <= {transmit_shift[62:0], 1'b0};
           bit_count <= bit_count + 1'b1;
         end
+      end
+
+      if (!host_cs_sync && !transaction_write && sclk_falling &&
+          bit_count >= 8) begin
+        if (read_started)
+          read_shift <= {read_shift[62:0], 1'b0};
+        else
+          read_started <= 1'b1;
       end
     end
   end

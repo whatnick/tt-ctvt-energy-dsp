@@ -18,19 +18,19 @@ async def send_adc_frame(dut, status: int, voltage: int, current: int) -> None:
         | signed24(current)
     )
 
-    dut.ui_in.value = int(dut.ui_in.value) | 0x02
+    dut.uio_in.value = int(dut.uio_in.value) | 0x10
     await ClockCycles(dut.clk, 2)
-    dut.ui_in.value = int(dut.ui_in.value) & ~0x02
+    dut.uio_in.value = int(dut.uio_in.value) & ~0x10
     await FallingEdge(dut.adc_cs_n)
 
     for bit in range(71, -1, -1):
-        value = int(dut.ui_in.value)
-        value = (value | 0x01) if ((frame >> bit) & 1) else (value & ~0x01)
-        dut.ui_in.value = value
+        value = int(dut.uio_in.value)
+        value = (value | 0x04) if ((frame >> bit) & 1) else (value & ~0x04)
+        dut.uio_in.value = value
         await RisingEdge(dut.adc_sclk)
 
     await RisingEdge(dut.adc_cs_n)
-    dut.ui_in.value = int(dut.ui_in.value) | 0x02
+    dut.uio_in.value = int(dut.uio_in.value) | 0x10
     await ClockCycles(dut.clk, 2)
 
 
@@ -43,20 +43,20 @@ async def host_read(dut, address: int) -> int:
         value = int(dut.ui_in.value)
         value = (value | 0x10) if ((address >> bit) & 1) else (value & ~0x10)
         dut.ui_in.value = value & ~0x08
-        await Timer(100, unit="ns")
+        await Timer(500, unit="ns")
         dut.ui_in.value = int(dut.ui_in.value) | 0x08
-        await Timer(100, unit="ns")
+        await Timer(500, unit="ns")
 
     result = 0
     for _ in range(64):
         dut.ui_in.value = int(dut.ui_in.value) & ~0x08
-        await Timer(100, unit="ns")
+        await Timer(500, unit="ns")
         result = (result << 1) | int(dut.host_miso.value)
         dut.ui_in.value = int(dut.ui_in.value) | 0x08
-        await Timer(100, unit="ns")
+        await Timer(500, unit="ns")
 
     dut.ui_in.value = int(dut.ui_in.value) | 0x04
-    await Timer(100, unit="ns")
+    await Timer(500, unit="ns")
     return result
 
 
@@ -69,17 +69,17 @@ async def host_write(dut, address: int, data: int) -> None:
         value = int(dut.ui_in.value)
         value = (value | 0x10) if ((command >> bit) & 1) else (value & ~0x10)
         dut.ui_in.value = value & ~0x08
-        await ClockCycles(dut.clk, 8)
+        await ClockCycles(dut.clk, 13)
         dut.ui_in.value = int(dut.ui_in.value) | 0x08
-        await ClockCycles(dut.clk, 8)
+        await ClockCycles(dut.clk, 13)
 
     for bit in range(31, -1, -1):
         value = int(dut.ui_in.value)
         value = (value | 0x10) if ((data >> bit) & 1) else (value & ~0x10)
         dut.ui_in.value = value & ~0x08
-        await ClockCycles(dut.clk, 8)
+        await ClockCycles(dut.clk, 13)
         dut.ui_in.value = int(dut.ui_in.value) | 0x08
-        await ClockCycles(dut.clk, 8)
+        await ClockCycles(dut.clk, 13)
 
     dut.ui_in.value = int(dut.ui_in.value) | 0x04
     await ClockCycles(dut.clk, 4)
@@ -90,12 +90,16 @@ async def test_capture_accumulate_and_readout(dut):
     cocotb.start_soon(Clock(dut.clk, 40, unit="ns").start())
 
     dut.ena.value = 1
-    dut.ui_in.value = 0x06
-    dut.uio_in.value = 0
+    dut.ui_in.value = 0x04
+    dut.uio_in.value = 0x10
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
-    await ClockCycles(dut.clk, 4)
+    await RisingEdge(dut.adc_reset_n)
+    assert (int(dut.uio_out.value) & 0x20) != 0
+
+    await RisingEdge(dut.adc_mclk)
+    assert (int(dut.uio_out.value) & 0x40) != 0
 
     voltage_offset = 10
     current_offset = 5
@@ -112,8 +116,8 @@ async def test_capture_accumulate_and_readout(dut):
             dut, status, voltage + voltage_offset, current + current_offset
         )
 
-    await ClockCycles(dut.clk, 80)
-    assert ((int(dut.uo_out.value) >> 4) & 1) == 0
+    await ClockCycles(dut.clk, 160)
+    assert ((int(dut.uo_out.value) >> 6) & 1) == 0
     assert await host_read(dut, 0x00) == 0x4354565444535031
     assert await host_read(dut, 0x01) == 1
     assert await host_read(dut, 0x02) == status
@@ -132,7 +136,7 @@ async def test_capture_accumulate_and_readout(dut):
     await ClockCycles(dut.clk, 1)
     dut.ui_in.value = int(dut.ui_in.value) & ~0x20
     await ClockCycles(dut.clk, 1)
-    assert ((int(dut.uo_out.value) >> 4) & 1) == 1
+    assert ((int(dut.uo_out.value) >> 6) & 1) == 1
 
     voltage_2 = -300
     current_2 = 400
@@ -141,7 +145,7 @@ async def test_capture_accumulate_and_readout(dut):
             dut, status, voltage_2 + voltage_offset, current_2 + current_offset
         )
 
-    await ClockCycles(dut.clk, 80)
+    await ClockCycles(dut.clk, 160)
     assert await host_read(dut, 0x20) == 2
     assert await host_read(dut, 0x21) == abs(voltage_2)
     assert await host_read(dut, 0x22) == abs(current_2)
@@ -162,7 +166,7 @@ async def test_capture_accumulate_and_readout(dut):
             dut, status, voltage_3 + voltage_offset, current_3 + current_offset
         )
 
-    await ClockCycles(dut.clk, 80)
+    await ClockCycles(dut.clk, 160)
     assert await host_read(dut, 0x20) == 3
     assert await host_read(dut, 0x21) == math.isqrt(voltage_sq_sum_3 // 256)
     assert await host_read(dut, 0x22) == math.isqrt(current_sq_sum_3 // 256)
@@ -180,7 +184,7 @@ async def test_capture_accumulate_and_readout(dut):
     for _ in range(256):
         await send_adc_frame(dut, status, saturated_voltage, saturated_current)
 
-    await ClockCycles(dut.clk, 80)
+    await ClockCycles(dut.clk, 160)
     saturated_active_sum = saturated_voltage * saturated_current * 256
     assert await host_read(dut, 0x20) == 4
     assert await host_read(dut, 0x13) == saturated_voltage * 256

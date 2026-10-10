@@ -19,6 +19,8 @@ module tt_um_whatnick_ctvt_energy_dsp (
   wire adc_cs_n;
   wire adc_sclk;
   wire adc_din;
+  wire adc_reset_n;
+  wire adc_mclk;
   wire sample_valid;
   wire signed [23:0] voltage_sample;
   wire signed [23:0] current_sample;
@@ -29,11 +31,13 @@ module tt_um_whatnick_ctvt_energy_dsp (
   ) adc_capture (
       .clk(clk),
       .rst_n(rst_n),
-      .adc_drdy_n(ui_in[1]),
-      .adc_dout(ui_in[0]),
+      .adc_drdy_n(uio_in[4]),
+      .adc_dout(uio_in[2]),
       .adc_cs_n(adc_cs_n),
       .adc_sclk(adc_sclk),
       .adc_din(adc_din),
+      .adc_reset_n(adc_reset_n),
+      .adc_mclk(adc_mclk),
       .sample_valid(sample_valid),
       .status_word(adc_status),
       .voltage_sample(voltage_sample),
@@ -42,28 +46,15 @@ module tt_um_whatnick_ctvt_energy_dsp (
 
   wire signed [23:0] voltage_offset;
   wire signed [23:0] current_offset;
-  wire signed [24:0] voltage_corrected_wide =
-      {voltage_sample[23], voltage_sample} -
-      {voltage_offset[23], voltage_offset};
-  wire signed [24:0] current_corrected_wide =
-      {current_sample[23], current_sample} -
-      {current_offset[23], current_offset};
-  wire signed [23:0] calibrated_voltage =
-      (voltage_corrected_wide > 25'sd8388607) ? 24'sh7fffff :
-      (voltage_corrected_wide < -25'sd8388608) ? 24'sh800000 :
-      voltage_corrected_wide[23:0];
-  wire signed [23:0] calibrated_current =
-      (current_corrected_wide > 25'sd8388607) ? 24'sh7fffff :
-      (current_corrected_wide < -25'sd8388608) ? 24'sh800000 :
-      current_corrected_wide[23:0];
-
   wire snapshot_valid;
   wire [31:0] snapshot_sequence;
-  wire signed [63:0] sum_active_power;
-  wire [63:0] sum_voltage_sq;
-  wire [63:0] sum_current_sq;
-  wire signed [63:0] sum_voltage;
-  wire signed [63:0] sum_current;
+  wire signed [55:0] sum_active_power;
+  wire [55:0] sum_voltage_sq;
+  wire [55:0] sum_current_sq;
+  wire signed [31:0] sum_voltage;
+  wire signed [31:0] sum_current;
+  wire signed [23:0] calibrated_voltage;
+  wire signed [23:0] calibrated_current;
 
   energy_accumulator #(
       .WINDOW_LOG2(8)
@@ -71,22 +62,26 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .clk(clk),
       .rst_n(rst_n),
       .sample_valid(sample_valid),
-      .voltage_sample(calibrated_voltage),
-      .current_sample(calibrated_current),
+      .voltage_sample(voltage_sample),
+      .current_sample(current_sample),
+      .voltage_offset(voltage_offset),
+      .current_offset(current_offset),
       .snapshot_valid(snapshot_valid),
       .snapshot_sequence(snapshot_sequence),
       .sum_active_power(sum_active_power),
       .sum_voltage_sq(sum_voltage_sq),
       .sum_current_sq(sum_current_sq),
       .sum_voltage(sum_voltage),
-      .sum_current(sum_current)
+      .sum_current(sum_current),
+      .calibrated_voltage(calibrated_voltage),
+      .calibrated_current(calibrated_current)
   );
 
   wire measurement_valid;
   wire [31:0] measurement_sequence;
-  wire [31:0] voltage_rms;
-  wire [31:0] current_rms;
-  wire signed [63:0] active_power;
+  wire [23:0] voltage_rms;
+  wire [23:0] current_rms;
+  wire signed [55:0] active_power;
   wire signed [63:0] active_energy;
 
   metering_postprocess #(
@@ -131,7 +126,7 @@ module tt_um_whatnick_ctvt_energy_dsp (
   );
 
   reg measurement_pending;
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n)
       measurement_pending <= 1'b0;
     else if (measurement_valid)
@@ -140,19 +135,22 @@ module tt_um_whatnick_ctvt_energy_dsp (
       measurement_pending <= 1'b0;
   end
 
-  assign uo_out[0] = adc_cs_n;
-  assign uo_out[1] = adc_sclk;
-  assign uo_out[2] = adc_din;
-  assign uo_out[3] = host_miso;
-  assign uo_out[4] = ~measurement_pending;
-  assign uo_out[5] = sample_valid;
-  assign uo_out[6] = calibrated_voltage[23];
-  assign uo_out[7] = calibrated_current[23];
+  assign uo_out[4:0] = 5'b0;
+  assign uo_out[5] = host_miso;
+  assign uo_out[6] = ~measurement_pending;
+  assign uo_out[7] = sample_valid;
 
-  assign uio_out = 8'b0;
-  assign uio_oe = 8'b0;
+  assign uio_out[0] = adc_cs_n;
+  assign uio_out[1] = adc_din;
+  assign uio_out[2] = 1'b0;
+  assign uio_out[3] = adc_sclk;
+  assign uio_out[4] = 1'b0;
+  assign uio_out[5] = adc_reset_n;
+  assign uio_out[6] = adc_mclk;
+  assign uio_out[7] = 1'b0;
+  assign uio_oe = 8'b0110_1011;
 
-  wire _unused = &{ena, ui_in[7:6], uio_in, 1'b0};
+  wire _unused = &{ena, ui_in[7:6], ui_in[1:0], uio_in[7], 1'b0};
 
 endmodule
 

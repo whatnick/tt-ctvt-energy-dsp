@@ -6,7 +6,9 @@
 `default_nettype none
 
 module adc_spi_capture #(
-    parameter integer CLK_DIV = 4
+    parameter integer CLK_DIV = 4,
+    parameter integer ADC_MCLK_DIV = 2,
+    parameter integer RESET_CYCLES = 4096
 ) (
     input  wire               clk,
     input  wire               rst_n,
@@ -15,6 +17,8 @@ module adc_spi_capture #(
     output reg                adc_cs_n,
     output reg                adc_sclk,
     output wire               adc_din,
+    output reg                adc_reset_n,
+    output reg                adc_mclk,
     output reg                sample_valid,
     output reg  [23:0]        status_word,
     output reg  signed [23:0] voltage_sample,
@@ -22,8 +26,17 @@ module adc_spi_capture #(
 );
 
   localparam integer DIV_WIDTH = $clog2(CLK_DIV);
+  localparam integer MCLK_DIV_WIDTH =
+      (ADC_MCLK_DIV <= 1) ? 1 : $clog2(ADC_MCLK_DIV);
+  localparam integer RESET_COUNT_WIDTH =
+      (RESET_CYCLES <= 1) ? 1 : $clog2(RESET_CYCLES + 1);
+  localparam integer DIV_LIMIT = CLK_DIV - 1;
+  localparam integer MCLK_DIV_LIMIT = ADC_MCLK_DIV - 1;
+  localparam integer RESET_COUNT_LIMIT = RESET_CYCLES - 1;
 
   reg [DIV_WIDTH-1:0] divider;
+  reg [MCLK_DIV_WIDTH-1:0] mclk_divider;
+  reg [RESET_COUNT_WIDTH-1:0] reset_counter;
   reg [6:0] bit_count;
   reg [71:0] shift_register;
   reg active;
@@ -33,8 +46,12 @@ module adc_spi_capture #(
   wire [71:0] shifted_frame = {shift_register[70:0], adc_dout};
   assign adc_din = 1'b0;
 
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n) begin
+      adc_reset_n <= 1'b0;
+      adc_mclk <= 1'b0;
+      mclk_divider <= {MCLK_DIV_WIDTH{1'b0}};
+      reset_counter <= {RESET_COUNT_WIDTH{1'b0}};
       adc_cs_n <= 1'b1;
       adc_sclk <= 1'b0;
       sample_valid <= 1'b0;
@@ -50,7 +67,26 @@ module adc_spi_capture #(
     end else begin
       sample_valid <= 1'b0;
 
-      if (!active) begin
+      if (mclk_divider == MCLK_DIV_LIMIT[MCLK_DIV_WIDTH-1:0]) begin
+        mclk_divider <= {MCLK_DIV_WIDTH{1'b0}};
+        adc_mclk <= ~adc_mclk;
+      end else begin
+        mclk_divider <= mclk_divider + 1'b1;
+      end
+
+      if (!adc_reset_n) begin
+        adc_cs_n <= 1'b1;
+        adc_sclk <= 1'b0;
+        divider <= {DIV_WIDTH{1'b0}};
+        active <= 1'b0;
+        finishing <= 1'b0;
+        armed <= 1'b0;
+        if (reset_counter == RESET_COUNT_LIMIT[RESET_COUNT_WIDTH-1:0]) begin
+          adc_reset_n <= 1'b1;
+        end else begin
+          reset_counter <= reset_counter + 1'b1;
+        end
+      end else if (!active) begin
         adc_sclk <= 1'b0;
         adc_cs_n <= 1'b1;
         divider <= {DIV_WIDTH{1'b0}};
@@ -64,7 +100,7 @@ module adc_spi_capture #(
           shift_register <= 72'b0;
           finishing <= 1'b0;
         end
-      end else if (divider == CLK_DIV - 1) begin
+      end else if (divider == DIV_LIMIT[DIV_WIDTH-1:0]) begin
         divider <= {DIV_WIDTH{1'b0}};
         if (!adc_sclk) begin
           adc_sclk <= 1'b1;

@@ -5,10 +5,10 @@ project:
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "SPI acquisition and metrology DSP for the CTVT PMOD"
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     25000000
+  clock_hz:     16384000
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
-  tiles: "8x2"
+  tiles: "4x4"
 
   # Your top module name must start with "tt_um_". Make it unique by including your github username:
   top_module:  "tt_um_whatnick_ctvt_energy_dsp"
@@ -19,6 +19,7 @@ project:
   source_files:
     - "project.v"
     - "adc_spi_capture.v"
+    - "serial_multiplier.v"
     - "energy_accumulator.v"
     - "integer_sqrt.v"
     - "metering_postprocess.v"
@@ -28,8 +29,8 @@ project:
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
   # Inputs
-  ui[0]: "ADC DOUT"
-  ui[1]: "ADC DRDYn"
+  ui[0]: "Reserved"
+  ui[1]: "Reserved"
   ui[2]: "Host CSn"
   ui[3]: "Host SCLK"
   ui[4]: "Host MOSI"
@@ -38,23 +39,23 @@ pinout:
   ui[7]: "Reserved"
 
   # Outputs
-  uo[0]: "ADC CSn"
-  uo[1]: "ADC SCLK"
-  uo[2]: "ADC DIN"
-  uo[3]: "Host MISO"
-  uo[4]: "IRQn"
-  uo[5]: "Sample strobe"
-  uo[6]: "Voltage sign"
-  uo[7]: "Current sign"
+  uo[0]: "Reserved"
+  uo[1]: "Reserved"
+  uo[2]: "Reserved"
+  uo[3]: "Reserved"
+  uo[4]: "Reserved"
+  uo[5]: "Host MISO"
+  uo[6]: "IRQn"
+  uo[7]: "Sample strobe"
 
   # Bidirectional pins
-  uio[0]: "Reserved"
-  uio[1]: "Reserved"
-  uio[2]: "Reserved"
-  uio[3]: "Reserved"
-  uio[4]: "Reserved"
-  uio[5]: "Reserved"
-  uio[6]: "Reserved"
+  uio[0]: "ADC CSn"
+  uio[1]: "ADC DIN"
+  uio[2]: "ADC DOUT"
+  uio[3]: "ADC SCLK"
+  uio[4]: "ADC DRDYn"
+  uio[5]: "ADC RESETn"
+  uio[6]: "ADC CLK_HOST"
   uio[7]: "Reserved"
 
 # Do not change!
