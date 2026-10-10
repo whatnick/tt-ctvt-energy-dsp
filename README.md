@@ -9,6 +9,10 @@ PMOD's ADS131M02 over SPI, captures simultaneous 24-bit voltage/current
 samples, and turns the sample stream into coherent measurement snapshots for
 a host controller.
 
+The design now also generates the ADS131M02 master clock and reset signal, so
+all digital signals required by the CTVT PMOD are driven directly by the Tiny
+Tapeout project.
+
 The working RTL currently implements:
 
 - ADS131M02-style 72-bit frame capture: status, voltage, and current;
@@ -73,18 +77,27 @@ coefficients and the sample period. Read `MEASUREMENT_SEQ` before and after a
 multi-register transfer and retry if it changed. See the complete
 [register map](docs/register-map.md).
 
+The staged hardware, FPGA, GF180 and harmonic-analysis release gates are in
+the [implementation plan](docs/implementation-plan.md).
+The host CPU, UART and output-only streaming decisions are tracked in the
+[host interface roadmap](docs/host-interface-roadmap.md), and physical-design
+milestones are tracked in the
+[GF180 ASIC integration roadmap](docs/asic-integration-roadmap.md).
+The accepted signoff GDS is illustrated in the
+[silicon layout visual index](docs/silicon-layout-visuals.md).
+
 ## FPGA validation
 
 - **FabricFox / iCE40UP5K:** preferred low-cost PMOD bench for the current
-  SPI capture and serialized arithmetic core. The reproducible seed-10 build
-  routes at 2,620 of 5,280 logic cells (49%) and reaches 25.33 MHz, leaving
+  SPI capture and serialized arithmetic core. The reproducible seed-4 build
+  routes at 2,682 of 5,280 logic cells (50%) and reaches 25.39 MHz, leaving
   all block RAM and SPRAM available for event and waveform buffering.
 - **OrangeCrab ECP5-25F:** recommended full-pipeline target with comfortable
   room for event buffering and a 15-bin Goertzel engine.
 - **ECP5-85F board:** fallback for parallel comparison engines, long waveform
   buffers, or a full FFT reference implementation.
 
-The ASIC build requests the maximum `8x2` SKY130 template allocation. Actual
+The ASIC build requests the maximum `4x4` GF180 template allocation. Actual
 area and timing reports will decide which Stage 1 features remain in the
 tapeout; the FPGA reference can retain the complete architecture.
 

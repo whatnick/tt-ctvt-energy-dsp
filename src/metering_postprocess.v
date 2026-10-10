@@ -27,11 +27,13 @@ module metering_postprocess #(
   localparam [1:0] CURRENT_START = 2'd2;
   localparam [1:0] CURRENT_ROOT = 2'd3;
 
-  reg [1:0] state;
+  (* fsm_encoding = "binary" *) reg [1:0] state;
   reg sqrt_start;
   reg [47:0] sqrt_radicand;
   wire sqrt_busy;
   wire sqrt_done;
+  wire [47:0] scaled_voltage_sq = sum_voltage_sq[WINDOW_LOG2 +: 48];
+  wire [47:0] scaled_current_sq = sum_current_sq[WINDOW_LOG2 +: 48];
   wire [23:0] sqrt_root;
 
   integer_sqrt sqrt_unit (
@@ -64,7 +66,7 @@ module metering_postprocess #(
             active_power <= sum_active_power >>> WINDOW_LOG2;
             active_energy <= active_energy +
                 {{8{sum_active_power[55]}}, sum_active_power};
-            sqrt_radicand <= sum_voltage_sq >> WINDOW_LOG2;
+            sqrt_radicand <= scaled_voltage_sq;
             sqrt_start <= 1'b1;
             state <= VOLTAGE_ROOT;
           end
@@ -77,7 +79,7 @@ module metering_postprocess #(
         end
         CURRENT_START: begin
           if (!sqrt_busy) begin
-            sqrt_radicand <= sum_current_sq >> WINDOW_LOG2;
+            sqrt_radicand <= scaled_current_sq;
             sqrt_start <= 1'b1;
             state <= CURRENT_ROOT;
           end

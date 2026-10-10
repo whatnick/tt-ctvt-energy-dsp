@@ -34,8 +34,8 @@ remain external and independently replaceable.
 
 The ADS131M02 already performs delta-sigma conversion and SINC3 decimation.
 This core consumes signed PCM samples; it does not duplicate the ADC decimator.
-An 8 kSPS operating point leaves more than 3000 cycles per sample at 25 MHz,
-making a serialized multiplier practical.
+An 8 kSPS operating point leaves 2048 cycles per sample at the nominal
+16.384 MHz ASIC clock, making a serialized multiplier practical.
 
 ## Staged implementation
 
@@ -91,8 +91,8 @@ The iCE40UP5K FabricFox has 5,280 logic cells and eight hardware multipliers.
 The current core, including both SPI interfaces, a serialized 24x24
 multiplier, shared accumulation and calibration arithmetic, integer square
 root, RMS, active power, 64-bit cumulative energy, and writable offset
-correction, routes at 2,620 logic cells (49%). Its seed-10 routed Fmax is
-25.33 MHz against the 25 MHz target. All block RAM and SPRAM remains available
+correction, routes at 2,664 logic cells (50%). Its seed-10 routed Fmax is
+25.32 MHz against the 25 MHz target. All block RAM and SPRAM remains available
 for event and waveform buffering. See the
 [utilization review](utilization-review.md).
 

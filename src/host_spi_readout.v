@@ -38,11 +38,12 @@ module host_spi_readout (
   reg [7:0] address_shift;
   reg [6:0] bit_count;
   reg [31:0] write_shift;
-  reg [7:0] transmit_byte;
-  reg [2:0] transmit_byte_index;
+  reg [63:0] read_shift;
+  reg read_started;
   reg transaction_write;
 
   wire sclk_rising = host_sclk_sync && !host_sclk_delayed;
+  wire sclk_falling = !host_sclk_sync && host_sclk_delayed;
   wire [7:0] received_address = {address_shift[6:0], host_mosi_sync};
   wire [31:0] received_write_data = {write_shift[30:0], host_mosi_sync};
 
@@ -57,60 +58,28 @@ module host_spi_readout (
   wire [63:0] extended_active_power =
       {{8{active_power[55]}}, active_power};
 
-  assign host_miso = transmit_byte[7];
+  assign host_miso = read_shift[63];
 
-  function [7:0] select_byte;
-    input [63:0] value;
-    input [2:0] byte_index;
-    begin
-      case (byte_index)
-        3'd7: select_byte = value[63:56];
-        3'd6: select_byte = value[55:48];
-        3'd5: select_byte = value[47:40];
-        3'd4: select_byte = value[39:32];
-        3'd3: select_byte = value[31:24];
-        3'd2: select_byte = value[23:16];
-        3'd1: select_byte = value[15:8];
-        default: select_byte = value[7:0];
-      endcase
-    end
-  endfunction
-
-  function [7:0] read_register_byte;
+  function [63:0] read_register;
     input [6:0] address;
-    input [2:0] byte_index;
     begin
       case (address)
-        7'h00: read_register_byte =
-            select_byte(64'h4354_5654_4453_5031, byte_index);
-        7'h01: read_register_byte =
-            select_byte({32'b0, snapshot_sequence}, byte_index);
-        7'h02: read_register_byte =
-            select_byte({40'b0, adc_status}, byte_index);
-        7'h10: read_register_byte =
-            select_byte(extended_sum_active_power, byte_index);
-        7'h11: read_register_byte =
-            select_byte(extended_sum_voltage_sq, byte_index);
-        7'h12: read_register_byte =
-            select_byte(extended_sum_current_sq, byte_index);
-        7'h13: read_register_byte =
-            select_byte(extended_sum_voltage, byte_index);
-        7'h14: read_register_byte =
-            select_byte(extended_sum_current, byte_index);
-        7'h20: read_register_byte =
-            select_byte({32'b0, measurement_sequence}, byte_index);
-        7'h21: read_register_byte =
-            select_byte({40'b0, voltage_rms}, byte_index);
-        7'h22: read_register_byte =
-            select_byte({40'b0, current_rms}, byte_index);
-        7'h23: read_register_byte =
-            select_byte(extended_active_power, byte_index);
-        7'h24: read_register_byte = select_byte(active_energy, byte_index);
-        7'h40: read_register_byte =
-            select_byte({{40{voltage_offset[23]}}, voltage_offset}, byte_index);
-        7'h41: read_register_byte =
-            select_byte({{40{current_offset[23]}}, current_offset}, byte_index);
-        default: read_register_byte = 8'b0;
+        7'h00: read_register = 64'h4354_5654_4453_5031;
+        7'h01: read_register = {32'b0, snapshot_sequence};
+        7'h02: read_register = {40'b0, adc_status};
+        7'h10: read_register = extended_sum_active_power;
+        7'h11: read_register = extended_sum_voltage_sq;
+        7'h12: read_register = extended_sum_current_sq;
+        7'h13: read_register = extended_sum_voltage;
+        7'h14: read_register = extended_sum_current;
+        7'h20: read_register = {32'b0, measurement_sequence};
+        7'h21: read_register = {40'b0, voltage_rms};
+        7'h22: read_register = {40'b0, current_rms};
+        7'h23: read_register = extended_active_power;
+        7'h24: read_register = active_energy;
+        7'h40: read_register = {{40{voltage_offset[23]}}, voltage_offset};
+        7'h41: read_register = {{40{current_offset[23]}}, current_offset};
+        default: read_register = 64'b0;
       endcase
     end
   endfunction
@@ -127,8 +96,8 @@ module host_spi_readout (
       address_shift <= 8'b0;
       bit_count <= 7'd0;
       write_shift <= 32'b0;
-      transmit_byte <= 8'b0;
-      transmit_byte_index <= 3'd7;
+      read_shift <= 64'b0;
+      read_started <= 1'b0;
       transaction_write <= 1'b0;
       voltage_offset <= 24'sd0;
       current_offset <= 24'sd0;
@@ -144,8 +113,8 @@ module host_spi_readout (
         address_shift <= 8'b0;
         bit_count <= 7'd0;
         write_shift <= 32'b0;
-        transmit_byte <= 8'b0;
-        transmit_byte_index <= 3'd7;
+        read_shift <= 64'b0;
+        read_started <= 1'b0;
         transaction_write <= 1'b0;
       end else if (sclk_rising) begin
         if (bit_count < 7) begin
@@ -155,9 +124,7 @@ module host_spi_readout (
           address_shift <= received_address;
           transaction_write <= received_address[7];
           if (!received_address[7]) begin
-            transmit_byte <=
-                read_register_byte(received_address[6:0], 3'd7);
-            transmit_byte_index <= 3'd7;
+            read_shift <= read_register(received_address[6:0]);
           end
           bit_count <= bit_count + 1'b1;
         end else if (transaction_write && bit_count < 40) begin
@@ -171,15 +138,16 @@ module host_spi_readout (
             endcase
           end
         end else if (!transaction_write) begin
-          if (bit_count[2:0] == 3'd7) begin
-            transmit_byte_index <= transmit_byte_index - 1'b1;
-            transmit_byte <= read_register_byte(
-                address_shift[6:0], transmit_byte_index - 1'b1);
-          end else begin
-            transmit_byte <= {transmit_byte[6:0], 1'b0};
-          end
           bit_count <= bit_count + 1'b1;
         end
+      end
+
+      if (!host_cs_sync && !transaction_write && sclk_falling &&
+          bit_count >= 8) begin
+        if (read_started)
+          read_shift <= {read_shift[62:0], 1'b0};
+        else
+          read_started <= 1'b1;
       end
     end
   end

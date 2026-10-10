@@ -2,8 +2,10 @@ name: fpga
 
 on:
   push:
-    # Comment out (or remove) the following line to run the FPGA workflow on every push:
-    branches: none
+    paths:
+      - "src/**"
+      - "fpga/**"
+      - ".github/workflows/fpga.yaml"
   workflow_dispatch:
 
 jobs:

@@ -59,7 +59,7 @@ A 24-cycle shift-and-add operation uses 72 cycles for all three products,
 leaving ample acquisition and accumulation margin.
 
 This replaces the large combinational multiplier with one 48-bit adder and
-shortens the critical path. It benefits both FPGA emulation and the SKY130
+shortens the critical path. It benefits both FPGA emulation and the GF180
 ASIC.
 
 ### Enable FPGA DSP inference
@@ -111,7 +111,7 @@ saturation can also share one calibration subtractor over two states.
 ### Use synchronous reset
 
 Tiny Tapeout supplies reset synchronously to the project clock. Using
-synchronous reset allows the SKY130 flow to use smaller plain flip-flops
+synchronous reset allows the GF180 flow to use smaller plain flip-flops
 instead of async-reset variants. This optimization requires reset and
 gate-level regression testing.
 
@@ -140,12 +140,12 @@ FabricFox at:
 
 | Resource | Used | Available | Utilization |
 |---|---:|---:|---:|
-| Logic cells | 2,620 | 5,280 | 49% |
+| Logic cells | 2,664 | 5,280 | 50% |
 | `SB_MAC16` DSPs | 0 | 8 | 0% |
 | Block RAMs | 0 | 30 | 0% |
 | SPRAM blocks | 0 | 4 | 0% |
 
-With seed 10, routed Fmax is 25.33 MHz and passes the declared 25 MHz target.
+With seed 10, routed Fmax is 25.32 MHz and passes the 25 MHz FPGA target.
 The serial multiplier, shared accumulator adder, shared calibration
 subtractor, right-sized datapaths, synchronous resets, and byte-oriented SPI
 readout are all included in this result.

@@ -20,7 +20,7 @@ $(BUILD)/design.json: $(SOURCES) | $(BUILD)
 
 $(BUILD)/design.asc: $(BUILD)/design.json $(PCF)
 	$(NEXTPNR) --up5k --package sg48 --pcf $(PCF) \
-		--pcf-allow-unconstrained --seed 10 --freq $(FREQ_MHZ) \
+		--pcf-allow-unconstrained --seed 4 --freq $(FREQ_MHZ) \
 		--json $< --asc $@ 2>&1 | tee $(BUILD)/nextpnr.log
 
 $(BUILD)/tt_um_whatnick_ctvt_energy_dsp.bin: $(BUILD)/design.asc

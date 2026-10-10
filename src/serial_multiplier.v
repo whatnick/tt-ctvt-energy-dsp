@@ -18,7 +18,7 @@ module serial_multiplier (
 
   reg [47:0] accumulator;
   reg [47:0] multiplicand;
-  reg [23:0] multiplier;
+  reg [23:0] multiplier_bits;
   reg [4:0] bit_count;
   reg negative_result;
 
@@ -27,13 +27,13 @@ module serial_multiplier (
   wire [23:0] magnitude_b =
       operand_b[23] ? (~operand_b[23:0] + 1'b1) : operand_b[23:0];
   wire [47:0] next_accumulator =
-      multiplier[0] ? accumulator + multiplicand : accumulator;
+      multiplier_bits[0] ? accumulator + multiplicand : accumulator;
 
   always @(posedge clk) begin
     if (!rst_n) begin
       accumulator <= 48'b0;
       multiplicand <= 48'b0;
-      multiplier <= 24'b0;
+      multiplier_bits <= 24'b0;
       bit_count <= 5'b0;
       negative_result <= 1'b0;
       busy <= 1'b0;
@@ -44,14 +44,14 @@ module serial_multiplier (
       if (start && !busy) begin
         accumulator <= 48'b0;
         multiplicand <= {24'b0, magnitude_a};
-        multiplier <= magnitude_b;
+        multiplier_bits <= magnitude_b;
         bit_count <= 5'b0;
         negative_result <= operand_a[23] ^ operand_b[23];
         busy <= 1'b1;
       end else if (busy) begin
         accumulator <= next_accumulator;
         multiplicand <= multiplicand << 1;
-        multiplier <= multiplier >> 1;
+        multiplier_bits <= multiplier_bits >> 1;
         if (bit_count == 5'd23) begin
           product <= negative_result ? -$signed(next_accumulator) :
               $signed(next_accumulator);

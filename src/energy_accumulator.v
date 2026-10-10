@@ -41,7 +41,7 @@ module energy_accumulator #(
   localparam [3:0] WAIT_CURRENT_SQ = 4'd12;
   localparam [3:0] ADD_CURRENT_SQ = 4'd13;
 
-  reg [3:0] state;
+  (* fsm_encoding = "binary" *) reg [3:0] state;
   reg [WINDOW_LOG2-1:0] sample_count;
   reg signed [55:0] active_accumulator;
   reg [55:0] voltage_sq_accumulator;

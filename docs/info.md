@@ -3,6 +3,10 @@
 CTVT Energy DSP controls an ADS131M02 on the Whatnick CTVT PMOD. When `DRDYn`
 falls, the SPI master clocks a 72-bit response frame into the ASIC: one 24-bit
 status word followed by signed 24-bit voltage and current samples.
+The ASIC supplies the PMOD's `CLK_HOST` and `RESETn` signals. The bootstrap
+implementation uses the ADC reset configuration and sends NULL command words;
+explicit register configuration and CRC validation are the next acquisition
+features.
 
 The current implementation applies saturating offset correction and
 accumulates five raw moments over 256 simultaneous samples:
@@ -25,14 +29,16 @@ Goertzel engine.
 
 ## How to test
 
-Connect the CTVT PMOD ADC signals to `ADC DOUT`, `ADC DRDYn`, `ADC CSn`,
-`ADC SCLK`, and `ADC DIN`. Configure the ADS131M02 for a 72-bit frame containing
-status, channel 0 voltage, and channel 1 current.
+Plug the CTVT PMOD into the bidirectional connector. Its standard Pmod SPI
+ordering maps directly to `uio[0:3]`, with DRDYn, RESETn and CLK_HOST on
+`uio[4:6]`. After reset, confirm that the ADS131M02 emits its default 72-bit
+status/channel-0/channel-1 frame.
 
-Use host SPI mode 0. Send an 8-bit register address MSB-first, then clock 64
-additional bits to receive the selected value. Read `SNAPSHOT_SEQ` before and
-after a group of result registers to confirm a coherent window. Assert
-`IRQ_ACK` for at least one ASIC clock to release `IRQn`.
+Use host SPI mode 0 at no more than 1 MHz. Send an 8-bit register address
+MSB-first, then clock 64 additional bits to receive the selected value. Read
+`SNAPSHOT_SEQ` before and after a group of result registers to confirm a
+coherent window. Assert `IRQ_ACK` for at least one ASIC clock to release
+`IRQn`.
 
 For simulation:
 

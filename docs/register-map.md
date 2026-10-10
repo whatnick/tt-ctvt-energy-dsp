@@ -15,9 +15,10 @@ The host uses SPI mode 0:
 4. Deassert `Host CSn`.
 
 For a write, set address bit 7, send the remaining 7-bit register address,
-then send one 32-bit data word most-significant bit first. Host SPI inputs pass
-through two-stage synchronizers into the 25 MHz core-clock domain; keep host
-SCLK at or below 2 MHz.
+then send one 32-bit data word most-significant bit first. Host SPI inputs pass through two-stage synchronizers into the core-clock
+domain. Keep host SCLK at or below 1 MHz so every edge is reliably observed at
+the nominal 16.384 MHz ASIC clock. Read data is latched when the address is
+accepted, preventing a register update from tearing a 64-bit transfer.
 
 All measurement registers belong to the last completed 256-sample window.
 Finite-window datapaths are right-sized internally and sign-extended or

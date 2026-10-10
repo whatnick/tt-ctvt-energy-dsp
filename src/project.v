@@ -19,6 +19,8 @@ module tt_um_whatnick_ctvt_energy_dsp (
   wire adc_cs_n;
   wire adc_sclk;
   wire adc_din;
+  wire adc_reset_n;
+  wire adc_mclk;
   wire sample_valid;
   wire signed [23:0] voltage_sample;
   wire signed [23:0] current_sample;
@@ -29,11 +31,13 @@ module tt_um_whatnick_ctvt_energy_dsp (
   ) adc_capture (
       .clk(clk),
       .rst_n(rst_n),
-      .adc_drdy_n(ui_in[1]),
-      .adc_dout(ui_in[0]),
+      .adc_drdy_n(uio_in[4]),
+      .adc_dout(uio_in[2]),
       .adc_cs_n(adc_cs_n),
       .adc_sclk(adc_sclk),
       .adc_din(adc_din),
+      .adc_reset_n(adc_reset_n),
+      .adc_mclk(adc_mclk),
       .sample_valid(sample_valid),
       .status_word(adc_status),
       .voltage_sample(voltage_sample),
@@ -131,19 +135,22 @@ module tt_um_whatnick_ctvt_energy_dsp (
       measurement_pending <= 1'b0;
   end
 
-  assign uo_out[0] = adc_cs_n;
-  assign uo_out[1] = adc_sclk;
-  assign uo_out[2] = adc_din;
-  assign uo_out[3] = host_miso;
-  assign uo_out[4] = ~measurement_pending;
-  assign uo_out[5] = sample_valid;
-  assign uo_out[6] = calibrated_voltage[23];
-  assign uo_out[7] = calibrated_current[23];
+  assign uo_out[4:0] = 5'b0;
+  assign uo_out[5] = host_miso;
+  assign uo_out[6] = ~measurement_pending;
+  assign uo_out[7] = sample_valid;
 
-  assign uio_out = 8'b0;
-  assign uio_oe = 8'b0;
+  assign uio_out[0] = adc_cs_n;
+  assign uio_out[1] = adc_din;
+  assign uio_out[2] = 1'b0;
+  assign uio_out[3] = adc_sclk;
+  assign uio_out[4] = 1'b0;
+  assign uio_out[5] = adc_reset_n;
+  assign uio_out[6] = adc_mclk;
+  assign uio_out[7] = 1'b0;
+  assign uio_oe = 8'b0110_1011;
 
-  wire _unused = &{ena, ui_in[7:6], uio_in, 1'b0};
+  wire _unused = &{ena, ui_in[7:6], ui_in[1:0], uio_in[7], 1'b0};
 
 endmodule
 
