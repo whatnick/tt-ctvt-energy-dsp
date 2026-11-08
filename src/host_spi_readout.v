@@ -24,6 +24,9 @@ module host_spi_readout (
     input  wire signed [55:0] active_power,
     input  wire signed [63:0] active_energy,
     input  wire [23:0]        adc_status,
+    input  wire [31:0]        adc_frame_count,
+    input  wire [31:0]        adc_overrun_count,
+    input  wire [3:0]         adc_diagnostics,
     output reg  signed [23:0] voltage_offset,
     output reg  signed [23:0] current_offset
 );
@@ -67,6 +70,9 @@ module host_spi_readout (
         7'h00: read_register = 64'h4354_5654_4453_5031;
         7'h01: read_register = {32'b0, snapshot_sequence};
         7'h02: read_register = {40'b0, adc_status};
+        7'h03: read_register = {32'b0, adc_frame_count};
+        7'h04: read_register = {32'b0, adc_overrun_count};
+        7'h05: read_register = {60'b0, adc_diagnostics};
         7'h10: read_register = extended_sum_active_power;
         7'h11: read_register = extended_sum_voltage_sq;
         7'h12: read_register = extended_sum_current_sq;

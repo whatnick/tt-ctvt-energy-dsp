@@ -22,7 +22,10 @@ module adc_spi_capture #(
     output reg                sample_valid,
     output reg  [23:0]        status_word,
     output reg  signed [23:0] voltage_sample,
-    output reg  signed [23:0] current_sample
+    output reg  signed [23:0] current_sample,
+    output reg  [31:0]        frame_count,
+    output reg  [31:0]        overrun_count,
+    output wire [3:0]         diagnostics
 );
 
   localparam integer DIV_WIDTH = $clog2(CLK_DIV);
@@ -42,9 +45,12 @@ module adc_spi_capture #(
   reg active;
   reg finishing;
   reg armed;
+  reg adc_drdy_delayed;
 
   wire [71:0] shifted_frame = {shift_register[70:0], adc_dout};
+  wire adc_drdy_falling = adc_drdy_delayed && !adc_drdy_n;
   assign adc_din = 1'b0;
+  assign diagnostics = {frame_count != 0, active, armed, adc_reset_n};
 
   always @(posedge clk) begin
     if (!rst_n) begin
@@ -64,8 +70,15 @@ module adc_spi_capture #(
       active <= 1'b0;
       finishing <= 1'b0;
       armed <= 1'b0;
+      adc_drdy_delayed <= 1'b1;
+      frame_count <= 32'b0;
+      overrun_count <= 32'b0;
     end else begin
       sample_valid <= 1'b0;
+      adc_drdy_delayed <= adc_drdy_n;
+
+      if (active && adc_drdy_falling)
+        overrun_count <= overrun_count + 1'b1;
 
       if (mclk_divider == MCLK_DIV_LIMIT[MCLK_DIV_WIDTH-1:0]) begin
         mclk_divider <= {MCLK_DIV_WIDTH{1'b0}};
@@ -120,6 +133,7 @@ module adc_spi_capture #(
             active <= 1'b0;
             finishing <= 1'b0;
             sample_valid <= 1'b1;
+            frame_count <= frame_count + 1'b1;
           end
         end
       end else begin

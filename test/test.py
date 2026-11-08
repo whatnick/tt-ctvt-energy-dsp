@@ -34,6 +34,15 @@ async def send_adc_frame(dut, status: int, voltage: int, current: int) -> None:
     await ClockCycles(dut.clk, 2)
 
 
+async def inject_adc_overrun(dut) -> None:
+    await FallingEdge(dut.adc_cs_n)
+    await ClockCycles(dut.clk, 8)
+    dut.uio_in.value = int(dut.uio_in.value) | 0x10
+    await ClockCycles(dut.clk, 2)
+    dut.uio_in.value = int(dut.uio_in.value) & ~0x10
+    await ClockCycles(dut.clk, 2)
+
+
 async def host_read(dut, address: int) -> int:
     value = int(dut.ui_in.value)
     dut.ui_in.value = value & ~0x04
@@ -97,6 +106,9 @@ async def test_capture_accumulate_and_readout(dut):
     dut.rst_n.value = 1
     await RisingEdge(dut.adc_reset_n)
     assert (int(dut.uio_out.value) & 0x20) != 0
+    assert await host_read(dut, 0x03) == 0
+    assert await host_read(dut, 0x04) == 0
+    assert await host_read(dut, 0x05) & 0x1 == 1
 
     await RisingEdge(dut.adc_mclk)
     assert (int(dut.uio_out.value) & 0x40) != 0
@@ -121,6 +133,9 @@ async def test_capture_accumulate_and_readout(dut):
     assert await host_read(dut, 0x00) == 0x4354565444535031
     assert await host_read(dut, 0x01) == 1
     assert await host_read(dut, 0x02) == status
+    assert await host_read(dut, 0x03) == 256
+    assert await host_read(dut, 0x04) == 0
+    assert await host_read(dut, 0x05) == 0xB
     assert await host_read(dut, 0x10) == ((voltage * current * 256) & ((1 << 64) - 1))
     assert await host_read(dut, 0x11) == voltage * voltage * 256
     assert await host_read(dut, 0x12) == current * current * 256
@@ -198,3 +213,9 @@ async def test_capture_accumulate_and_readout(dut):
     )
     expected_energy += saturated_active_sum
     assert await host_read(dut, 0x24) == (expected_energy & ((1 << 64) - 1))
+
+    overrun_task = cocotb.start_soon(inject_adc_overrun(dut))
+    await send_adc_frame(dut, status, voltage, current)
+    await overrun_task
+    assert await host_read(dut, 0x03) == 1025
+    assert await host_read(dut, 0x04) == 1

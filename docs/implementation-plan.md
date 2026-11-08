@@ -13,15 +13,17 @@ The first hardware-facing milestone consists of:
 - integer RMS, active power and cumulative active energy;
 - an SPI mode-0 host interface with transaction-latched 64-bit reads;
 - a level interrupt with explicit acknowledgement.
+- host-readable ADC frame, overrun, and acquisition-state diagnostics.
 
 The direct-Pmod FabricFox implementation uses 2,682 of 5,280 logic cells and
 routes at 25.39 MHz against the 25 MHz FPGA target. No DSP, block RAM or SPRAM
 resources are used.
 
 The ADC currently uses its reset defaults and sends NULL command words while
-reading each 72-bit status/voltage/current frame. Explicit ADS131M02 register
-configuration, response validation and optional CRC are the next acquisition
-features.
+reading each 72-bit status/voltage/current frame. Completed frames and new
+`DRDYn` edges observed during an active transfer are counted for bring-up.
+Explicit ADS131M02 register configuration, response validation and optional
+CRC are the next acquisition features.
 
 ## Clocking
 

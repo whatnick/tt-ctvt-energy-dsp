@@ -79,6 +79,9 @@ multi-register transfer and retry if it changed. See the complete
 
 The staged hardware, FPGA, GF180 and harmonic-analysis release gates are in
 the [implementation plan](docs/implementation-plan.md).
+The safe inspection, FPGA commissioning, calibration, and FPGA-to-silicon
+sequence for an assembled board is in the
+[manufactured PMOD bring-up guide](docs/manufactured-pmod-bringup.md).
 The host CPU, UART and output-only streaming decisions are tracked in the
 [host interface roadmap](docs/host-interface-roadmap.md), and physical-design
 milestones are tracked in the
