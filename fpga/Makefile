@@ -7,6 +7,7 @@ BUILD := build
 SOURCES := tt_fpga_top.v $(wildcard ../src/*.v)
 PCF := tt_fpga_fabricfox.pcf
 FREQ_MHZ ?= 25
+SEED ?= 4
 
 .PHONY: all bitstream report clean
 
@@ -20,8 +21,9 @@ $(BUILD)/design.json: $(SOURCES) | $(BUILD)
 
 $(BUILD)/design.asc: $(BUILD)/design.json $(PCF)
 	$(NEXTPNR) --up5k --package sg48 --pcf $(PCF) \
-		--pcf-allow-unconstrained --seed 4 --freq $(FREQ_MHZ) \
-		--json $< --asc $@ 2>&1 | tee $(BUILD)/nextpnr.log
+		--pcf-allow-unconstrained --seed $(SEED) --freq $(FREQ_MHZ) \
+		--json $< --asc $@ > $(BUILD)/nextpnr.log 2>&1; \
+		status=$$?; cat $(BUILD)/nextpnr.log; exit $$status
 
 $(BUILD)/tt_um_whatnick_ctvt_energy_dsp.bin: $(BUILD)/design.asc
 	$(ICEPACK) $< $@
