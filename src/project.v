@@ -25,6 +25,9 @@ module tt_um_whatnick_ctvt_energy_dsp (
   wire signed [23:0] voltage_sample;
   wire signed [23:0] current_sample;
   wire [23:0] adc_status;
+  wire [31:0] adc_frame_count;
+  wire [31:0] adc_overrun_count;
+  wire [3:0] adc_diagnostics;
 
   adc_spi_capture #(
       .CLK_DIV(4)
@@ -41,7 +44,10 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .sample_valid(sample_valid),
       .status_word(adc_status),
       .voltage_sample(voltage_sample),
-      .current_sample(current_sample)
+      .current_sample(current_sample),
+      .frame_count(adc_frame_count),
+      .overrun_count(adc_overrun_count),
+      .diagnostics(adc_diagnostics)
   );
 
   wire signed [23:0] voltage_offset;
@@ -121,6 +127,9 @@ module tt_um_whatnick_ctvt_energy_dsp (
       .active_power(active_power),
       .active_energy(active_energy),
       .adc_status(adc_status),
+      .adc_frame_count(adc_frame_count),
+      .adc_overrun_count(adc_overrun_count),
+      .adc_diagnostics(adc_diagnostics),
       .voltage_offset(voltage_offset),
       .current_offset(current_offset)
   );

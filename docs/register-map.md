@@ -35,6 +35,9 @@ Retry if the sequence changed. `IRQn` stays low after a new snapshot until
 | `0x00` | `DEVICE_ID` | No | ASCII-like constant `0x4354565444535031` (`CTVTDSP1`) |
 | `0x01` | `SNAPSHOT_SEQ` | No | Completed-window counter in bits 31:0 |
 | `0x02` | `ADC_STATUS` | No | Last ADS response/status word in bits 23:0 |
+| `0x03` | `ADC_FRAME_COUNT` | No | Completed 72-bit ADC frames since reset in bits 31:0 |
+| `0x04` | `ADC_OVERRUN_COUNT` | No | New `DRDYn` falling edges observed while an ADC transfer was active |
+| `0x05` | `ADC_DIAGNOSTICS` | No | Bits 3:0 are frame received, transfer active, capture armed, and ADC reset released |
 | `0x10` | `SUM_ACTIVE_POWER` | Yes | Sum of signed `voltage * current` products |
 | `0x11` | `SUM_VOLTAGE_SQ` | No | Sum of squared signed voltage samples |
 | `0x12` | `SUM_CURRENT_SQ` | No | Sum of squared signed current samples |

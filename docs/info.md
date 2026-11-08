@@ -6,7 +6,8 @@ status word followed by signed 24-bit voltage and current samples.
 The ASIC supplies the PMOD's `CLK_HOST` and `RESETn` signals. The bootstrap
 implementation uses the ADC reset configuration and sends NULL command words;
 explicit register configuration and CRC validation are the next acquisition
-features.
+features. Bring-up diagnostics count completed frames and any new `DRDYn`
+falling edge that arrives before the current 72-bit transfer completes.
 
 The current implementation applies saturating offset correction and
 accumulates five raw moments over 256 simultaneous samples:
@@ -39,6 +40,12 @@ MSB-first, then clock 64 additional bits to receive the selected value. Read
 `SNAPSHOT_SEQ` before and after a group of result registers to confirm a
 coherent window. Assert `IRQ_ACK` for at least one ASIC clock to release
 `IRQn`.
+
+During first-board bring-up, read `ADC_DIAGNOSTICS`, `ADC_FRAME_COUNT`, and
+`ADC_OVERRUN_COUNT`. A healthy idle acquisition has diagnostics value `0x9`
+after its first frame: ADC reset released and at least one frame received.
+The frame counter should advance at the configured output data rate while the
+overrun counter remains zero.
 
 For simulation:
 
