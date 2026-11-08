@@ -42,10 +42,10 @@ coherent window. Assert `IRQ_ACK` for at least one ASIC clock to release
 `IRQn`.
 
 During first-board bring-up, read `ADC_DIAGNOSTICS`, `ADC_FRAME_COUNT`, and
-`ADC_OVERRUN_COUNT`. A healthy idle acquisition has diagnostics value `0x9`
-after its first frame: ADC reset released and at least one frame received.
-The frame counter should advance at the configured output data rate while the
-overrun counter remains zero.
+`ADC_OVERRUN_COUNT`. A healthy idle acquisition has diagnostics value `0xB`
+after its first frame: ADC reset released, capture armed, and at least one
+frame received. The frame counter should advance at the configured output data
+rate while the overrun counter remains zero.
 
 For simulation:
 

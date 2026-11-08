@@ -57,7 +57,7 @@ Read the host registers:
 | `ADC_STATUS` (`0x02`) | Stable ADS131M02 response/status word |
 | `ADC_FRAME_COUNT` (`0x03`) | Increasing |
 | `ADC_OVERRUN_COUNT` (`0x04`) | Zero |
-| `ADC_DIAGNOSTICS` (`0x05`) | `0x9` while idle after at least one frame |
+| `ADC_DIAGNOSTICS` (`0x05`) | `0xB` while armed and idle after at least one frame |
 
 An increasing frame counter proves the entire clock/reset/DRDY/SPI path. A
 nonzero overrun count means the configured output data rate and 72-bit SPI

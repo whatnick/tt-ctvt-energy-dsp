@@ -135,7 +135,7 @@ async def test_capture_accumulate_and_readout(dut):
     assert await host_read(dut, 0x02) == status
     assert await host_read(dut, 0x03) == 256
     assert await host_read(dut, 0x04) == 0
-    assert await host_read(dut, 0x05) == 0x9
+    assert await host_read(dut, 0x05) == 0xB
     assert await host_read(dut, 0x10) == ((voltage * current * 256) & ((1 << 64) - 1))
     assert await host_read(dut, 0x11) == voltage * voltage * 256
     assert await host_read(dut, 0x12) == current * current * 256
