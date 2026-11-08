@@ -15,8 +15,8 @@ The first hardware-facing milestone consists of:
 - a level interrupt with explicit acknowledgement.
 - host-readable ADC frame, overrun, and acquisition-state diagnostics.
 
-The direct-Pmod FabricFox implementation uses 2,682 of 5,280 logic cells and
-routes at 25.39 MHz against the 25 MHz FPGA target. No DSP, block RAM or SPRAM
+The direct-Pmod FabricFox implementation uses 2,808 of 5,280 logic cells and
+routes at 25.77 MHz with seed 9 against the 25 MHz FPGA target. No DSP, block RAM or SPRAM
 resources are used.
 
 The ADC currently uses its reset defaults and sends NULL command words while
@@ -156,7 +156,7 @@ with that action rather than being upgraded independently.
 | Check | Status |
 |---|---|
 | RTL cocotb metrology regression | Pass: 1 test, 0 failures |
-| FabricFox FPGA synthesis and place-and-route | Pass: 2,682 / 5,280 logic cells; 25.39 MHz |
+| FabricFox FPGA synthesis and place-and-route | Pass: 2,808 / 5,280 logic cells; 25.77 MHz, seed 9 |
 | Generic Yosys synthesis and structural check | Pass: no structural problems |
 | GF180 LibreLane physical design | Completed through GDS and extracted views |
 | GF180 setup and hold timing | Pass: 6.378 ns setup and 0.364 ns hold worst slack |

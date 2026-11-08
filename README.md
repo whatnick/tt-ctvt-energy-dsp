@@ -92,8 +92,8 @@ The accepted signoff GDS is illustrated in the
 ## FPGA validation
 
 - **FabricFox / iCE40UP5K:** preferred low-cost PMOD bench for the current
-  SPI capture and serialized arithmetic core. The reproducible seed-4 build
-  routes at 2,682 of 5,280 logic cells (50%) and reaches 25.39 MHz, leaving
+  SPI capture and serialized arithmetic core. The reproducible seed-9 build
+  routes at 2,808 of 5,280 logic cells (53%) and reaches 25.77 MHz, leaving
   all block RAM and SPRAM available for event and waveform buffering.
 - **OrangeCrab ECP5-25F:** recommended full-pipeline target with comfortable
   room for event buffering and a 15-bin Goertzel engine.

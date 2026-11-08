@@ -7,7 +7,7 @@ BUILD := build
 SOURCES := tt_fpga_top.v $(wildcard ../src/*.v)
 PCF := tt_fpga_fabricfox.pcf
 FREQ_MHZ ?= 25
-SEED ?= 4
+SEED ?= 9
 
 .PHONY: all bitstream report clean
 
