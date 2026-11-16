@@ -34,6 +34,10 @@ FPGA PMOD port with no CT or transformer attached.
 Use the FabricFox/iCE40 build first because it exercises the same PMOD mapping
 as Tiny Tapeout:
 
+Upload and persist the validated image using the
+[FabricFox upload procedure](../fpga/README.md#upload-to-fabricfox). Verify the
+image auto-loads at 25 MHz before attaching the PMOD or logic-analyzer harness.
+
 ```text
 uio[0] CSn       uio[4] DRDYn
 uio[1] DIN       uio[5] RESETn
