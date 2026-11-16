@@ -7,6 +7,7 @@ future FPGA-only multipliers from silently consuming LUTs.
 
 ```sh
 cd fpga
+python3 -m pip install -r requirements.txt
 make report
 ```
 
@@ -14,6 +15,11 @@ Override `YOSYS`, `NEXTPNR`, and `ICEPACK` when the YoWASP executable names
 are not on `PATH`. The FPGA build retains a conservative 25 MHz timing target;
 the Tiny Tapeout GF180 configuration uses a nominal 16.384 MHz clock so the
 generated ADS131M02 master clock is frequency-coherent.
+
+The YoWASP Yosys and nextpnr versions are pinned in `requirements.txt`.
+Placement seeds are only reproducible for a fixed synthesis and place-and-route
+toolchain; update the pins only after rerunning timing and hardware upload
+validation.
 
 The wrapper and pin constraints derive from
 [`TinyTapeout/tt-fpga-compiler`](https://github.com/TinyTapeout/tt-fpga-compiler/tree/89893f61a7e66c9cc5d3c1e8b0c481bd29642c9d/verilog)

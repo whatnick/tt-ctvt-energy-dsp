@@ -30,4 +30,5 @@ RUN umask 022 && \
 RUN /ttsetup/venv/bin/pip install librelane==2.4.2
 
 # Reproducible FPGA toolchain for FabricFox validation
-RUN /ttsetup/venv/bin/pip install yowasp-yosys yowasp-nextpnr-ice40
+COPY fpga/requirements.txt /ttsetup/fpga_requirements.txt
+RUN /ttsetup/venv/bin/pip install -r /ttsetup/fpga_requirements.txt

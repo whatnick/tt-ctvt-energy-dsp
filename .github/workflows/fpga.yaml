@@ -21,7 +21,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install YoWASP FPGA tools
-        run: pip install yowasp-yosys yowasp-nextpnr-ice40
+        run: pip install -r fpga/requirements.txt
 
       - name: Build FabricFox bitstream
         run: make -C fpga report
