@@ -37,6 +37,10 @@ as Tiny Tapeout:
 Upload and persist the validated image using the
 [FabricFox upload procedure](../fpga/README.md#upload-to-fabricfox). Verify the
 image auto-loads at 25 MHz before attaching the PMOD or logic-analyzer harness.
+Before attaching the PMOD, run the
+[pre-PMOD hardware dry run](../fpga/README.md#pre-pmod-hardware-dry-run) to
+verify the physical FPGA host interface, synthetic ADC capture, and complete
+256-sample metrology path.
 
 ```text
 uio[0] CSn       uio[4] DRDYn

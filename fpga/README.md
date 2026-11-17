@@ -65,3 +65,30 @@ With no PMOD attached, a healthy loaded image reports `uo_out=0x40`.
 Repeated `uio_out` reads alternate between `0x21` and `0x61`: ADC `CSn` and
 `RESETn` are high, while `CLK_HOST` toggles. These checks validate the FPGA
 upload, reset, and clock path but do not validate ADC SPI capture.
+
+## Pre-PMOD hardware dry run
+
+With the PMOD disconnected, the FabricFox RP2350 can emulate the ADC and
+exercise the loaded FPGA image:
+
+```powershell
+# One synthetic ADC frame and host-interface smoke test
+python scripts\fabricfox_dry_run.py --port COM5 --quick
+
+# Authoritative 256-frame metrology-window test
+python scripts\fabricfox_dry_run.py --port COM5 --full
+```
+
+The test verifies device identity, host SPI reads and writes, acquisition
+diagnostics, frame and overrun counters, IRQ acknowledgement, and synthetic
+ADS131M02 capture. The full test also checks all raw sums, RMS values, active
+power, and accumulated energy for a constant `V=1000`, `I=-250` vector. It
+takes about two minutes on the RP2350 and expects 256 frames, zero overruns,
+`VRMS=1000`, `IRMS=250`, active power `-250000`, and energy `-64000000`.
+
+The emulator advances the FPGA clock deterministically rather than polling a
+continuously running ADC SCLK. MicroPython polling can miss an edge and leave
+a 72-bit transfer incomplete. The deterministic full test takes longer but
+cannot lose an edge between software observations. Both modes restore
+`uio_oe_pico=0`, `ui_in=0x04`, and the 25 MHz project clock before exiting,
+including after an assertion or timeout on the controller.
